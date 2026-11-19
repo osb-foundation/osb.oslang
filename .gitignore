@@ -33,7 +33,7 @@ Thumbs.db
 
 # OSB kernel build artifacts (bootable ISO + scratch dirs)
 osb.iso
-src/Osb.Kernel/iso/
+osb.kernel/iso/
 
 # Test results
 TestResults/

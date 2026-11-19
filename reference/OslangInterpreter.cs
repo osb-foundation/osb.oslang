@@ -25,6 +25,11 @@ namespace Osb.Lang;
 /// </summary>
 public sealed class OslangInterpreter
 {
+    // The reference implementation is OSLANG 0.72. The canonical spec is
+    // 0.73 (see ../OSLANG-SPEC.md). The gap between the two is recorded in
+    // ../OSLANG-GAP.md §0; this constant is intentionally left at 0.72 until
+    // the reference is brought up to 0.73, or until the owner decides to
+    // archive it. The new engine in ../engine targets 0.73.
     public const string Version = "0.72";
 
     private readonly ExtensionRegistry _extensions;

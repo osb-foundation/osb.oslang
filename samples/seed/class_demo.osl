@@ -1,0 +1,25 @@
+USING OSL.CONSOLE
+
+CLASS Animal
+    PUBLIC name
+    CONSTRUCTOR(n)
+        PRINT "Constructor called with: " + n
+        ME.name = n
+        PRINT "After assignment, ME.name = " + ME.name
+    END CONSTRUCTOR
+    FUNCTION Speak()
+        PRINT "Animal sound"
+    END FUNCTION
+END CLASS
+
+CLASS Dog : Animal
+    FUNCTION Speak()
+        PRINT "Woof! I am " + ME.name
+    END FUNCTION
+END CLASS
+
+FUNCTION MAIN()
+    d = NEW Dog("Rex")
+    d.Speak()
+    PRINT "Class demo done."
+END FUNCTION

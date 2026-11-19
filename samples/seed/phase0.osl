@@ -1,0 +1,36 @@
+FUNCTION FACT(n)
+    IF n <= 1 THEN
+        RETURN 1
+    END
+    RETURN n * FACT(n - 1)
+END FUNCTION
+
+FUNCTION DOWN(n)
+    RETURN DOWN(n + 1)
+END FUNCTION
+
+FUNCTION MAIN()
+    PRINT "-- recursion within the limit --"
+    PRINT "5! = " + FACT(5)
+    PRINT "8! = " + FACT(8)
+
+    PRINT "-- runaway recursion is caught --"
+    TRY
+        PRINT DOWN(0)
+        PRINT "never"
+    CATCH e
+        PRINT "caught: " + e
+    END
+    PRINT "still alive"
+
+    PRINT "-- the KEYCODE enum table is complete --"
+    PRINT KEYCODE.UNKNOWN
+    PRINT KEYCODE.ENTER
+    PRINT KEYCODE.ESC
+    PRINT KEYCODE.BACKSPACE
+    PRINT KEYCODE.PAGEDOWN
+    PRINT KEYCODE.F1
+    PRINT KEYCODE.F12
+
+    PRINT "DONE"
+END FUNCTION

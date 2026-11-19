@@ -4,8 +4,8 @@
 missing — in the reference implementation, in the bare-metal kernel port, and in the shell?
 
 **Language reference:** [OSLANG-SPEC.md](OSLANG-SPEC.md)
-**Latest spec:** 0.73 · **Reference implementation:** `src/Osb.Lang` (`Version = "0.72"`) ·
-**Kernel port:** `src/Osb.Kernel/OslangKernel.cs` · **Host apps:** `src/Osb.Shell`
+**Latest spec:** 0.73 · **Reference implementation:** `reference/Osb.Lang` (`Version = "0.72"`) ·
+**Kernel port:** `archive/kernel-port/OslangKernel.cs` · **Host apps:** `osb.shell`
 
 ## Legend
 
@@ -23,7 +23,7 @@ the code was read directly for this report.
 
 ## 0. Scoreboard
 
-| Area | Spec | `src/Osb.Lang` | Kernel port | Notes |
+| Area | Spec | `reference/Osb.Lang` | Kernel port (archived) | Notes |
 |---|---|---|---|---|
 | Lexical (comments, escapes, multiline, interpolation) | 0.1 / 0.61 | ⚠️ | ⚠️ | both miss triple-quote indentation stripping |
 | Numbers / types | 0.1 | ⚠️ | ⚠️ | neither implements `DATE`/`TIME` (0.5) |
@@ -185,7 +185,7 @@ named-function callbacks; file streams. **Breaking:** bare math functions remove
 New primitive types, `DATE`/`TIME` namespaces, chronological comparison, extended `TYPEOF`.
 
 - **Not implemented in either implementation.** Zero occurrences of `DATE`/`TIME` in
-  `src/Osb.Lang`. This is the one whole version nobody has started.
+  `reference/Osb.Lang`. This is the one whole version nobody has started.
 
 ### 0.51 — `SHOW`, operators, arrow functions, nested arrays ✅ / ⚠️ (no arrow functions)
 `SHOW`, `MOD`, `**`, postfix `++`/`--`, `+=`, `=>` arrow functions and closures, nested
@@ -268,7 +268,7 @@ Implicit `ME` for reads *and* calls, the four-step resolution order, `KEY` enum,
 ### 0.73 — clean enum model, predictable shadowing ✅ / ✅
 The four breaking changes, current state:
 
-| 0.73 change | `src/Osb.Lang` | Kernel | `src/Osb.Shell` + KISS |
+| 0.73 change | `reference/Osb.Lang` | Kernel | `osb.shell` + KISS |
 |---|---|---|---|
 | `KEY` → **`KEYCODE`** | 🔄 `KEY` (and the `KEYCODE` alias does not exist) | ✅ `KEYCODE` | **already `KEYCODE`** |
 | Enum types in a dedicated registry, not globals | ✅ (`_enumTypes`, resolved at read step 5) | ✅ (`_osEnums`, never in globals) | n/a |
@@ -342,7 +342,7 @@ Legend: ✅ works · ⚠️ works with defects · ❌ missing.
 
 ---
 
-## 4. Defects to fix in `src/Osb.Lang` (ordered by impact)
+## 4. Defects to fix in `reference/Osb.Lang` (ordered by impact)
 
 1. **`OSL.XML.EscapeXml` is a no-op** (`Runtime/OslXmlNamespace.cs:124`) — emit
    `&amp; &lt; &gt; &quot; &apos;`.
@@ -366,7 +366,7 @@ Legend: ✅ works · ⚠️ works with defects · ❌ missing.
     constants in `Interpreter.Calls.cs:133`).
 11. **`OSL.CNF` cannot create an empty config.**
 
-## 5. Defects in `src/Osb.Kernel/OslangKernel.cs`
+## 5. Defects in the archived kernel port `archive/kernel-port/OslangKernel.cs`
 
 Items 1–4 and 11 were fixed in phase 2 and are kept here as a record of what was wrong.
 
@@ -451,11 +451,11 @@ known date-dependent failure (`cal` asserting `"August"`).
 
 | Where | How | Status |
 |---|---|---|
-| Host (`src/Osb.Shell`) | `dotnet run --project src/Osb.Shell` then the app's entry, or a `.osl` in `APPS/` | works; KISS/CONFIG need the 0.73 `KEYCODE` name |
+| Host (`osb.shell`) | `dotnet run --project osb.shell` then the app's entry, or a `.osl` in `APPS/` | works; KISS/CONFIG need the 0.73 `KEYCODE` name |
 | Kernel | `CD A:\OSB\APPS` then `OSLANG <script.OSL>` | works; `PHASE0.OSL` (budgets), `PHASE1.OSL` (semantics) and `PHASE2.OSL` (dispatch, `MATH`, `SWITCH`, OOP) are the regressions |
 
 ```sh
-cd src/Osb.Kernel && ./build.sh
+cd osb.kernel && ./build.sh
 qemu-system-x86_64 -cdrom osb.iso -m 64M -drive file=osb.img,if=ide,index=0 \
     -display none -serial stdio -no-reboot -monitor none
 ```

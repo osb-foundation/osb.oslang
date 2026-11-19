@@ -1,0 +1,18 @@
+USING OSL.CONSOLE
+
+PRINT "Testing DO WHILE with comparison..."
+i = 0
+DO
+    PRINT "i = " + STR(i)
+    i = i + 1
+WHILE i < 3
+PRINT "Comparison test done!"
+
+PRINT ""
+PRINT "Testing DO WHILE with FALSE..."
+j = 0
+DO
+    PRINT "j = " + STR(j)
+    j = j + 1
+WHILE FALSE
+PRINT "FALSE test done (loop should not repeat)!"

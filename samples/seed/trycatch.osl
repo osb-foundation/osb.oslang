@@ -1,0 +1,35 @@
+USING OSL.CONSOLE
+
+PRINT "=== Testing TRY/CATCH ==="
+
+PRINT "Test 1: Simple TRY without error..."
+TRY
+    PRINT "In TRY block"
+CATCH err
+    PRINT "Should not reach here: " + err
+END
+PRINT "After TRY/CATCH"
+
+PRINT ""
+PRINT "Test 2: CATCH division by zero..."
+TRY
+    x = 1 / 0
+    PRINT "Should not reach here"
+CATCH err
+    PRINT "Caught error: " + err
+END
+PRINT "After TRY/CATCH - continuing"
+
+PRINT ""
+PRINT "Test 3: CATCH invalid array index..."
+TRY
+    a = [1, 2, 3]
+    x = a[10]
+    PRINT "Should not reach here"
+CATCH err
+    PRINT "Caught error: " + err
+END
+PRINT "After TRY/CATCH - continuing"
+
+PRINT ""
+PRINT "All TRY/CATCH tests passed!"

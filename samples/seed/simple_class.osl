@@ -1,0 +1,19 @@
+USING OSL.CONSOLE
+
+CLASS Point
+    PUBLIC x
+    PUBLIC y
+    CONSTRUCTOR(x, y)
+        ME.x = x
+        ME.y = y
+    END CONSTRUCTOR
+    FUNCTION Display()
+        PRINT "Point: " + ME.x + ", " + ME.y
+    END FUNCTION
+END CLASS
+
+FUNCTION MAIN()
+    p = NEW Point(10, 20)
+    p.Display()
+    PRINT "Simple class test done."
+END FUNCTION

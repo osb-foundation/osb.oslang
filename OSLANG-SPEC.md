@@ -2,8 +2,8 @@
 
 **Status:** canonical language reference (single source of truth)
 **Latest specification version:** 0.73
-**Reference implementation:** `src/Osb.Lang` (`OslangInterpreter`, currently 0.72)
-**Bare-metal port:** `src/Osb.Kernel/OslangKernel.cs` (subset, see [OSLANG-GAP.md](OSLANG-GAP.md))
+**Reference implementation:** `reference/Osb.Lang` (`OslangInterpreter`, currently 0.72)
+**Bare-metal port:** archived at `archive/kernel-port/OslangKernel.cs` (subset, see [OSLANG-GAP.md](OSLANG-GAP.md))
 
 This document is the unified, deduplicated feature reference for OSLANG. It folds
 together the twelve per-version specs that still live next to it in this folder;

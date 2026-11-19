@@ -23,11 +23,11 @@ Welcome to the official OSLANG documentation. OSLANG is a modern, interpreted pr
 
 ## Specification
 
-- **[OSLANG 0.62 Specification](/src/Osb.Lang/OSLANG-0.62-SPEC.md)** — Full language specification (OSL.JSON, OSL.CSV, OSL.XML, OSL.CNF, OSB.NET, JSON/CSV/XML/CNF data interchange and HTTP).
-- **[OSLANG 0.61 Specification](/src/Osb.Lang/OSLANG-0.61-SPEC.md)** — Full language specification (ENUM, ENUM SETS, SWITCH, CASE, DEFAULT, BREAK, string interpolation, multiline strings, escape sequences).
-- **[OSLANG 0.6 Specification](/src/Osb.Lang/OSLANG-0.6-SPEC.md)** — Full language specification (SHOW, arrow functions, MOD, **, ++, --, +=, nested arrays, FINDINDEX, FOREACH, CONTAINS, JOIN, PUSH, POP, SORT, FLAT, FLATMAP, MATH.PI, trig functions, NUMBER.TRUNC, STRING.PADSTART/PADEND/REPEAT).
-- **[OSLANG 0.5 Specification](/src/Osb.Lang/OSLANG-0.5-SPEC.md)** — Full language specification (DATE, TIME, ARGS).
-- **[OSLANG 0.4 Specification](/src/Osb.Lang/OSLANG-0.4-SPEC.md)** — Previous version with ARGS support.
+- **[OSLANG 0.62 Specification](/reference/OSLANG-0.62-SPEC.md)** — Full language specification (OSL.JSON, OSL.CSV, OSL.XML, OSL.CNF, OSB.NET, JSON/CSV/XML/CNF data interchange and HTTP).
+- **[OSLANG 0.61 Specification](/reference/OSLANG-0.61-SPEC.md)** — Full language specification (ENUM, ENUM SETS, SWITCH, CASE, DEFAULT, BREAK, string interpolation, multiline strings, escape sequences).
+- **[OSLANG 0.6 Specification](/reference/OSLANG-0.6-SPEC.md)** — Full language specification (SHOW, arrow functions, MOD, **, ++, --, +=, nested arrays, FINDINDEX, FOREACH, CONTAINS, JOIN, PUSH, POP, SORT, FLAT, FLATMAP, MATH.PI, trig functions, NUMBER.TRUNC, STRING.PADSTART/PADEND/REPEAT).
+- **[OSLANG 0.5 Specification](/reference/OSLANG-0.5-SPEC.md)** — Full language specification (DATE, TIME, ARGS).
+- **[OSLANG 0.4 Specification](/reference/OSLANG-0.4-SPEC.md)** — Previous version with ARGS support.
 
 ## Version Notes
 

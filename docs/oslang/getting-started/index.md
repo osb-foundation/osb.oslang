@@ -33,7 +33,7 @@ cd osb-dotnet
 dotnet build
 ```
 
-The OSB Shell executable is produced at `src/Osb.Shell/bin/Debug/net10.0/Osb.Shell`.
+The OSB Shell executable is produced at `osb.shell/bin/Debug/net10.0/Osb.Shell`.
 
 ### Running an OSLANG File
 
@@ -75,5 +75,5 @@ Hello, OSLANG!
 
 ## Need Help?
 
-- Full specification: [OSLANG 0.61 SPEC](/src/Osb.Lang/OSLANG-0.61-SPEC.md)
+- Full specification: [OSLANG 0.61 SPEC](/reference/OSLANG-0.61-SPEC.md)
 - Report issues: [GitHub Issues](https://github.com/ygorlazaro/osb-dotnet/issues)

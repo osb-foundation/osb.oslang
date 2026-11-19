@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- OSLANG reference implementation (Osb.Lang).
+       This is the *reference/oracle* library: it stays as-is, keeps building
+       against normal .NET, and is NOT freestanding. The new engine lives in
+       ../engine and is compiled twice (host + OSB). This project is read-only
+       w.r.t. the O0→O7 plan; the owner decides whether to archive it after
+       the conformance corpus passes. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Osb.Lang</AssemblyName>
+  </PropertyGroup>
+
+</Project>

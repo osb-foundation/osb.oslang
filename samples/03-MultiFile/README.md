@@ -13,7 +13,7 @@ OSL Main.osl
 Or from the project root:
 
 ```
-dotnet run --project src/Osb.Shell/Osb.Shell.csproj -- OSL Main.osl
+dotnet run --project osb.shell/Osb.Shell.Userspace.csproj -- OSL Main.osl
 ```
 
 ## Structure
@@ -39,9 +39,9 @@ dotnet run --project src/Osb.Shell/Osb.Shell.csproj -- OSL Main.osl
 
 ## OSLANG 0.61 Features
 
-These samples demonstrate core OSLANG 0.61 concepts. For the full language specification, see `src/Osb.Lang/OSLANG-0.61-SPEC.md`.
+These samples demonstrate core OSLANG 0.61 concepts. For the full language specification, see `reference/OSLANG-0.61-SPEC.md`.
 
-Additional examples can be found in `src/Osb.Shell/`:
+Additional examples can be found in `osb.shell/`:
 - `Animal.osl` - Class inheritance with BASE and ME
 - `HelloWorld.osl` - Basic program with I18N integration
 - `ShellExtensions.osl` - FILE, DIR, DATE, and I18N usage
