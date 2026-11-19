@@ -34,24 +34,33 @@ Verified with a freestanding probe compiled to a native object with ilc and **bo
 Hard rules for engine core + Host.Osb:
 - No `new` except engine heap objects allocated through the engine allocator; no BCL allocation paths.
 - No C# exceptions (`throw`/`try`/`catch`/`finally`) for ordinary control flow anywhere in the engine; errors travel as return codes + an unwind slot in the interpreter (see §6).
-- `fixed`/`stackalloc`/pointers allowed; raw heap pointers must never be held in C# locals across an allocation (D2 roots).
+- `fixed`/`stackalloc`/pointers allowed; raw heap pointers must never be held in C# locals across an allocation that could trigger a collection (D2 roots).
 - **Max 400 lines per source file** (engine code; docs kept short as well).
 
 ---
 
-## 3. Value / heap / GC model (D2)
+## 3. Value / heap / GC model (D2) — **IMPLEMENTED O3.3**
 
 **Tagged values.** A `Value` is a fixed-size struct: kind tag + payload union (explicit layout, per §2): `NULL`, `BOOLEAN`, `NUMBER` (IEEE-754 double, own formatting/parsing — no `System.Math`/`Double.ToString`), `STRING`, `ARRAY`, `OBJECT` (class instance), `ENUM` (enum type + member), `CLOSURE` (function value + captured frame), `KEY-EVENT` (`KEYCODE.KEY`/`CHAR`/`CTRL`/`ALT`/`SHIFT`), `NATIVE-FN` (OSL.* host callable).
 
-**Heap.** The engine owns its heap inside the process's memory block: a bump arena first (O3b), precise non-moving mark-sweep GC (O3c). Heap objects carry a header (mark bit, kind, size). Strings, arrays, objects, closures live there; numbers/booleans/null are immediate.
+**Heap (O3.3).** The engine owns its heap inside the process's memory block. The architecture uses a **platform-memory abstraction** (`IMemoryProvider`) with two implementations:
+- `HostedMemoryProvider` — pinned `byte[]` for `Host.Test` (BCL-backed, conformance, stress testing)
+- `OsbMemoryProvider` — flat `int 21h` syscall region for `Host.Osb` (freestanding)
 
-**Roots.** An explicit root/frame stack owned by the interpreter; every heap reference reachable from executing code is either on that stack or reachable from it. No raw heap pointer is stored in a C# local across any allocation that could trigger a collection. GC stress tests in O3c (bounded memory over long loops; poison-fill freed memory in test builds).
+The heap allocator (`EngineHeap`) is a **bump allocator with precise non-moving mark-sweep GC**:
+- All allocations tracked via intrusive linked list in platform memory (`HeapObjHeader` per object)
+- Fixed-size root table in platform memory (grows geometrically)
+- Fixed-size mark stack in platform memory (grows geometrically)
+- GC handles (`GCHandle`) bridge managed heap objects to platform memory for `Host.Test`
+- No managed collections in GC paths — compatible with freestanding NativeAOT
+
+**Roots.** An explicit root/frame stack owned by the interpreter; every heap reference reachable from executing code is either on that stack or reachable from it. No raw heap pointer is stored in a C# local across any allocation that could trigger a collection. GC stress tests in O3.3 (bounded memory over long loops; cyclic reference handling; root registration/unregistration).
 
 **Memory budget.** Ring-3 process memory today is one fixed 2 MiB block (OSB-ARCHITECTURE §8); K1 adds a grow-in-2-MiB-steps syscall up to a per-process limit, released at reap. The engine carves its arena from the process block and reports heap peak per O3 sub-phase. Startup must fit in the base block; growth covers large scripts.
 
 ---
 
-## 4. String model (D3)
+## 4. String model (D3) — **SQ-001/002 RESOLVED**
 
 - Immutable, **length-prefixed UTF-8** in the engine heap. Length stored in bytes; no null termination relied upon.
 - **SQ-001 (RESOLVED — CODEPOINT):** indexing unit for `COUNT()`/`LENGTH`, `SUBSTR(start, length)`, `INDEXOF(v)` is Unicode code points. `s[0]` returns a STRING containing exactly one Unicode code point, preserving its UTF-8 encoding. Grapheme clusters are out of scope.

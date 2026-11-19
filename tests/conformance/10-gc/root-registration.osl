@@ -1,0 +1,54 @@
+CLASS Data
+    VAR value
+END CLASS
+
+FUNCTION test_roots()
+    VAR heap_data
+    heap_data = NEW Data()
+    heap_data.value = 42
+    
+    VAR i
+    i = 0
+    while (i < 100)
+        VAR temp
+        temp = NEW Data()
+        temp.value = i
+        i = i + 1
+    end
+    
+    print("After allocations")
+    print(heap_data.value)
+    
+    VAR data2
+    data2 = NEW Data()
+    data2.value = 100
+    
+    i = 0
+    while (i < 100)
+        VAR temp
+        temp = NEW Data()
+        temp.value = i
+        i = i + 1
+    end
+    
+    print("After more allocations")
+    print(heap_data.value)
+    print(data2.value)
+    
+    print("ROOT_TEST_PASS")
+END FUNCTION
+
+FUNCTION MAIN()
+    test_roots()
+
+    VAR i
+    i = 0
+    while (i < 100)
+        VAR temp
+        temp = NEW Data()
+        temp.value = i
+        i = i + 1
+    end
+    print("After function scope GC")
+    print("done")
+END FUNCTION

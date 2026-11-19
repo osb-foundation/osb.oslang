@@ -1,0 +1,55 @@
+CLASS Node
+    VAR next
+    VAR prev
+    VAR data
+END CLASS
+
+FUNCTION create_cycle()
+    VAR a
+    a = NEW Node()
+    VAR b
+    b = NEW Node()
+    VAR c
+    c = NEW Node()
+    
+    a.next = b
+    b.prev = a
+    b.next = c
+    c.prev = b
+    c.next = a
+    a.prev = c
+    
+    a.data = 1
+    b.data = 2
+    c.data = 3
+    
+    RETURN a
+END FUNCTION
+
+FUNCTION test_cycles()
+    VAR root
+    root = create_cycle()
+    
+    VAR i
+    i = 0
+    while (i < 100)
+        VAR temp
+        temp = NEW Node()
+        temp.data = i
+        i = i + 1
+    end
+    
+    print("Root data")
+    print(root.data)
+    print("Next data")
+    print(root.next.data)
+    print("Next next data")
+    print(root.next.next.data)
+    print("Cycle back data")
+    print(root.next.next.next.data)
+    print("CYCLE_TEST_PASS")
+END FUNCTION
+
+FUNCTION MAIN()
+    test_cycles()
+END FUNCTION

@@ -1,0 +1,8 @@
+After allocations
+42
+After more allocations
+42
+100
+ROOT_TEST_PASS
+After function scope GC
+done

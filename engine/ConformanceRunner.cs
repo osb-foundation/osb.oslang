@@ -126,7 +126,8 @@ namespace Osb.Engine.Conformance
             try
             {
                 // Create engine with hosted providers
-                var heap = new EngineHeap();
+                var memoryProvider = new HostedMemoryProvider();
+                var heap = new EngineHeap(memoryProvider);
                 var output = new StringWriter();
                 var host = new HostTest(output);
                 var math = new MathProvider();

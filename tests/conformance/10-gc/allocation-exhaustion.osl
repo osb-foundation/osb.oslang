@@ -1,0 +1,29 @@
+FUNCTION test_oom()
+    print("test_oom started")
+    VAR i
+    i = 0
+    while (i < 50000)
+        VAR arr
+        arr = [1, 2, 3, 4, 5]
+        i = i + 1
+        IF i == 25000 THEN
+            print("Halfway")
+            print(i)
+        END
+    end
+    print("Loop completed")
+    print(i)
+END FUNCTION
+
+FUNCTION MAIN()
+    TRY
+        test_oom()
+        print("NO_OOM")
+    CATCH ERR
+        IF ERR == "Out of memory" THEN
+            print("OOM_CAUGHT")
+        ELSE
+            print("OTHER_ERROR: " + ERR)
+        END
+    END
+END FUNCTION
