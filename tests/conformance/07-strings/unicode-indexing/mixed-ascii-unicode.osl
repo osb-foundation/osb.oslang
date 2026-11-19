@@ -1,0 +1,12 @@
+FUNCTION MAIN()
+    VAR s
+    s = "Héllo 🌍"  ' H é l l o space 🌍 (mixed ASCII, 2-byte, 4-byte)
+    PRINT s.COUNT()
+    PRINT s[0]
+    PRINT s[1]
+    PRINT s[2]
+    PRINT s[3]
+    PRINT s[4]
+    PRINT s[5]
+    PRINT s[6]
+END FUNCTION

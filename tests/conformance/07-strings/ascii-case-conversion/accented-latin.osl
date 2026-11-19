@@ -1,0 +1,6 @@
+FUNCTION MAIN()
+    VAR s
+    s = "café naïve résumé"  ' Accented characters should NOT change
+    PRINT s.TOUPPER()
+    PRINT s.TOLOWER()
+END FUNCTION

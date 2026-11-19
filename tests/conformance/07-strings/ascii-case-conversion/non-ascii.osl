@@ -1,0 +1,6 @@
+FUNCTION MAIN()
+    VAR s
+    s = "Hello 世界 안녕 你好 Привет"  ' Mixed ASCII + non-ASCII
+    PRINT s.TOUPPER()
+    PRINT s.TOLOWER()
+END FUNCTION

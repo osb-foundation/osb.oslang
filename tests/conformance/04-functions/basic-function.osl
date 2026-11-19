@@ -1,0 +1,7 @@
+FUNCTION Add(a, b)
+    RETURN a + b
+END FUNCTION
+
+FUNCTION MAIN()
+    PRINT Add(2, 3)
+END FUNCTION

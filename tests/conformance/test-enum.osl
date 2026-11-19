@@ -1,0 +1,11 @@
+ENUM Color
+    RED
+    GREEN
+    BLUE
+END
+
+FUNCTION MAIN()
+    VAR c
+    c = Color.RED
+    PRINT c
+END FUNCTION

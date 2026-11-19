@@ -1,0 +1,7 @@
+FUNCTION MAIN()
+    VAR arr
+    arr = [1, 2, 3, 4, 5]
+    PRINT arr.COUNT()
+    PRINT arr.FIRST()
+    PRINT arr.LAST()
+END FUNCTION

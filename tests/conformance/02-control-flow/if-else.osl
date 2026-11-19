@@ -1,0 +1,9 @@
+FUNCTION MAIN()
+    VAR x
+    x = 10
+    IF x > 5 THEN
+        PRINT "greater"
+    ELSE
+        PRINT "not greater"
+    END
+END FUNCTION

@@ -1,0 +1,11 @@
+ENUM Color
+    RED
+    GREEN
+    BLUE
+END
+
+FUNCTION MAIN()
+    VAR Color
+    Color = "shadowed"
+    PRINT Color
+END FUNCTION

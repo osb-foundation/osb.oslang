@@ -1,0 +1,14 @@
+CLASS Person
+    CONSTRUCTOR(name, age)
+    END CONSTRUCTOR
+
+    FUNCTION Greet()
+        PRINT "Hello"
+    END FUNCTION
+END CLASS
+
+FUNCTION MAIN()
+    VAR p
+    p = NEW Person("Alice", 30)
+    p.Greet()
+END FUNCTION

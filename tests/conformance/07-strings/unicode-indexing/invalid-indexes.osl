@@ -1,0 +1,31 @@
+FUNCTION MAIN()
+    VAR s
+    s = "ABC"
+    PRINT s.COUNT()
+    ' Test negative index - should throw exception
+    TRY
+        VAR x
+        x = s[-1]
+        PRINT "no-exception-negative"
+    CATCH ERR
+        PRINT "caught-negative"
+    END
+
+    ' Test out of range index - should throw exception
+    TRY
+        VAR y
+        y = s[3]
+        PRINT "no-exception-outrange"
+    CATCH ERR
+        PRINT "caught-outrange"
+    END
+
+    ' Test very large index
+    TRY
+        VAR z
+        z = s[100]
+        PRINT "no-exception-large"
+    CATCH ERR
+        PRINT "caught-large"
+    END
+END FUNCTION

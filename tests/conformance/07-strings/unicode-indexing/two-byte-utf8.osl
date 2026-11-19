@@ -1,0 +1,9 @@
+FUNCTION MAIN()
+    VAR s
+    s = "café"  ' c a f é (é is 2-byte UTF-8: 0xC3 0xA9)
+    PRINT s.COUNT()
+    PRINT s[0]
+    PRINT s[1]
+    PRINT s[2]
+    PRINT s[3]
+END FUNCTION

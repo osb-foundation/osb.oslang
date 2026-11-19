@@ -1,0 +1,8 @@
+FUNCTION MAIN()
+    VAR s
+    s = "Hello"
+    PRINT s.COUNT()
+    PRINT s[0]
+    PRINT s[2]
+    PRINT s[4]
+END FUNCTION

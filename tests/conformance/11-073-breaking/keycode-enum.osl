@@ -1,0 +1,15 @@
+ENUM KEYCODE
+    ENTER
+    ESC
+    UP
+END
+
+FUNCTION MAIN()
+    VAR key
+    key = KEYCODE.ENTER
+    IF key = KEYCODE.ENTER THEN
+        PRINT "Enter pressed"
+    ELSE
+        PRINT "Other key"
+    END
+END FUNCTION

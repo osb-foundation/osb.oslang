@@ -1,0 +1,13 @@
+FUNCTION MAIN()
+    VAR s
+    s = "aBcDéF🎉"  ' Mixed ASCII + accented + emoji
+    VAR upper
+    VAR lower
+    upper = s.TOUPPER()
+    lower = s.TOLOWER()
+    PRINT upper
+    PRINT lower
+    ' Verify round-trip preserves UTF-8
+    PRINT upper.COUNT()
+    PRINT lower.COUNT()
+END FUNCTION

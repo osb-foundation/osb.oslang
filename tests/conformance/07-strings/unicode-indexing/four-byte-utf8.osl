@@ -1,0 +1,7 @@
+FUNCTION MAIN()
+    VAR s
+    s = "🎉🎊"  ' Two 4-byte UTF-8 characters (emoji)
+    PRINT s.COUNT()
+    PRINT s[0]
+    PRINT s[1]
+END FUNCTION

@@ -2,35 +2,56 @@
 
 **Rule:** the spec is the truth (OSLANG-PLAN D5). Items below are genuine ambiguities or gaps found while reading the full spec set (`OSLANG-SPEC.md` and `OSLANG-0.1` … `0.73`). They are **answered by the owner, never guessed**. An item blocks the engine/O4 sub-task it touches until answered. Format: `SQ-<nn>` — one-line summary, spec location, the question, and why an implementation choice would be a guess.
 
+**Decisions recorded in:** [`OWNER-DECISIONS.md`](OWNER-DECISIONS.md) (decision table with rationale, impact, deadline). **Design proposals referencing these questions:** [`O1a-GAP-ANALYSIS.md`](O1a-GAP-ANALYSIS.md) (K1/K2/K3 syscall designs), [`ENGINE-DESIGN.md`](../ENGINE-DESIGN.md) (engine core).
+
 ---
 
-### SQ-001 String indexing unit (0.51/0.61, OSLANG-SPEC §12–13)
+### SQ-001 String indexing unit (0.51/0.61, OSLANG-SPEC §12–13) — **RESOLVED**
 
 Spec: strings are "Unicode text"; `COUNT()`/`LENGTH`, `SUBSTR(start, length)`, `INDEXOF(v)` exist with no indexing rule. Triple-quoted strings strip common indentation (0.61).
 
-Question: is the unit UTF-8 bytes, Unicode code points, or UTF-16 code units? It affects `COUNT`, `SUBSTR`, `INDEXOF`, `LEFT`/`RIGHT`, `PADSTART`/`PADEND` and array/string interop.
+**Official Decision (2026-11-19): CODEPOINT**
 
-Design impact: O3b (Values/Strings). ENGINE-DESIGN §4 proposes code points.
+- String indexing operates on Unicode code points, not UTF-8 bytes.
+- `s[0]` returns a STRING containing exactly one Unicode code point.
+- The returned value preserves the UTF-8 encoding of that code point.
+- Indexing never exposes individual UTF-8 continuation bytes as characters.
+- Grapheme cluster support is explicitly OUT OF SCOPE for OSLANG 0.73.
+- Invalid UTF-8 handling follows the existing runtime string validation policy.
+
+Design impact: O3b (Values/Strings). ENGINE-DESIGN §4 updated.
 
 ---
 
-### SQ-002 Case-folding rule for case-insensitivity (0.1, OSLANG-SPEC §2)
+### SQ-002 Case-folding rule for case-insensitivity (0.1, OSLANG-SPEC §2) — **RESOLVED**
 
 Spec: "Case-insensitive everywhere: keywords, identifiers, enum members, property names"; no fold table.
 
-Question: ASCII-only invariant-culture folding, or full Unicode (e.g. Turkish İ, ß, accented letters)? It affects identifier resolution (§4/§11 0.73), keyword recognition, enum member names, and property lookup.
+**Official Decision (2026-11-19): ASCII-ONLY**
 
-Design impact: lexer + identifier resolution. ENGINE-DESIGN §4 proposes ASCII-only.
+- `TOUPPER` converts only ASCII `a-z` into `A-Z`.
+- `TOLOWER` converts only ASCII `A-Z` into `a-z`.
+- All non-ASCII characters remain unchanged.
+- No locale-dependent behavior or partial Unicode case folding.
+- Implementation must not corrupt UTF-8 sequences.
+
+Design impact: lexer + identifier resolution. ENGINE-DESIGN §4 updated.
 
 ---
 
-### SQ-003 EVENT / ON / RAISE semantics (0.3, OSLANG-SPEC §6)
+### SQ-003 EVENT / ON / RAISE semantics (0.3, OSLANG-SPEC §6) — **RESOLVED**
 
 Spec: `EVENT Name`, `ON Name … END ON`, `RAISE Name`; one table row in §6, one paragraph in 0.3, never revisited. 0.73 §16 lists events as "never revisited; no version states whether they are required for 0.73".
 
-Question: are events required in the 0.73 engine? If yes: what is the exact semantics (handler list per event, `RAISE` synchronous, handler reentrancy, `END ON` scope)?
+**Official Decision (2026-11-19): DEFER**
 
-Design impact: O3d (OOP/events). Both reference and kernel port treat events as dead code.
+- EVENT, ON and RAISE are deferred to a future language version.
+- They are NOT part of the OSLANG 0.73 implementation scope.
+- Do not implement partial or experimental versions.
+- Document their deferred status consistently in the specification and roadmap.
+- Do not allow their absence to block unrelated O3 implementation work.
+
+Design impact: O3d (OOP/events) — removed from 0.73 scope.
 
 ---
 
@@ -202,4 +223,4 @@ Design impact: O3b (`CLEAR`) vs O5 (`OSL.CONSOLE`).
 
 ### How answers are recorded
 
-The owner answers in this file (or a reply that I copy here). Until answered, the corresponding code is left unimplemented and marked `SQ-<nn>`; no implementation choice is shipped.
+The owner answers in `OWNER-DECISIONS.md` (decision table format). Until answered, the corresponding code is left unimplemented and marked `SQ-<nn>`; no implementation choice is shipped. `ENGINE-DESIGN.md` and `O1a-GAP-ANALYSIS.md` reference these questions where they affect design proposals.

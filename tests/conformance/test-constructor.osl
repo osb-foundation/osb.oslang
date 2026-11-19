@@ -1,0 +1,10 @@
+CLASS Test
+    CONSTRUCTOR()
+    END CONSTRUCTOR
+END CLASS
+
+FUNCTION MAIN()
+    VAR t
+    t = NEW Test()
+    PRINT "ok"
+END FUNCTION

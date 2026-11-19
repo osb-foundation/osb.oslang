@@ -54,8 +54,8 @@ Hard rules for engine core + Host.Osb:
 ## 4. String model (D3)
 
 - Immutable, **length-prefixed UTF-8** in the engine heap. Length stored in bytes; no null termination relied upon.
-- **[OPEN] SQ-001:** indexing unit for `COUNT()`/`LENGTH`, `SUBSTR(start, length)`, `INDEXOF(v)` — UTF-8 bytes, Unicode code points, or UTF-16 code units? Spec says "Unicode text" (§3) with no indexing rule (OSLANG-SPEC §13, 0.61). Proposal: code points; decision needed before O3b.
-- **[OPEN] SQ-002:** case-folding for the case-insensitive language (§2): ASCII-only invariant culture or full Unicode? Proposal: ASCII-only (identifiers, keywords, enum members, property names); owner to confirm.
+- **SQ-001 (RESOLVED — CODEPOINT):** indexing unit for `COUNT()`/`LENGTH`, `SUBSTR(start, length)`, `INDEXOF(v)` is Unicode code points. `s[0]` returns a STRING containing exactly one Unicode code point, preserving its UTF-8 encoding. Grapheme clusters are out of scope.
+- **SQ-002 (RESOLVED — ASCII-ONLY):** case-folding for the case-insensitive language (§2) is ASCII-only invariant culture. `TOUPPER`/`TOLOWER` convert only ASCII `a-z`/`A-Z`; non-ASCII characters remain unchanged. No locale-dependent behavior.
 - Encodings: script source is read as bytes and decoded as UTF-8 (spec: source files are text; 0.61 escapes `\n \t \\`, triple quotes, `${}` interpolation per OSLANG-SPEC §13).
 - Number/date formatting and parsing are hand-written (no `ToString`/`Parse` from BCL).
 

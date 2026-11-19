@@ -1,0 +1,6 @@
+FUNCTION MAIN()
+    VAR s
+    s = "Hello World"
+    PRINT s.TOUPPER()
+    PRINT s.TOLOWER()
+END FUNCTION

@@ -1,0 +1,8 @@
+FUNCTION MAIN()
+    VAR s
+    s = "ABCDEF"  ' 6 ASCII characters
+    PRINT s.COUNT()
+    PRINT s[0]    ' First
+    PRINT s[2]    ' Middle
+    PRINT s[5]    ' Last
+END FUNCTION

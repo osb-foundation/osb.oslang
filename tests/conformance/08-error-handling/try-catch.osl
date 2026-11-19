@@ -1,0 +1,12 @@
+FUNCTION MAIN()
+    TRY
+        PRINT "before error"
+        VAR x
+        x = 1 / 0
+        PRINT "after error"
+    CATCH ERR
+        PRINT "caught: " + ERR
+    END
+
+    PRINT "after try-catch"
+END FUNCTION

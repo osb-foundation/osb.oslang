@@ -1,0 +1,3 @@
+before error
+caught: Division by zero.
+after try-catch

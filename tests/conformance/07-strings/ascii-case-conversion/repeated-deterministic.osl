@@ -1,0 +1,16 @@
+FUNCTION MAIN()
+    VAR s
+    s = "Test"
+    VAR u1
+    VAR u2
+    VAR l1
+    VAR l2
+    u1 = s.TOUPPER()
+    u2 = u1.TOUPPER()
+    l1 = s.TOLOWER()
+    l2 = l1.TOLOWER()
+    PRINT u1
+    PRINT u2
+    PRINT l1
+    PRINT l2
+END FUNCTION

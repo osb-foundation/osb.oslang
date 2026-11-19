@@ -1,0 +1,7 @@
+FUNCTION MAIN()
+    VAR s
+    s = "日本"  ' Two 3-byte UTF-8 characters
+    PRINT s.COUNT()
+    PRINT s[0]
+    PRINT s[1]
+END FUNCTION

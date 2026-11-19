@@ -1,0 +1,9 @@
+USING OSL.I18N
+
+FUNCTION MAIN()
+    OSL.I18N.LOAD("en", "tests/conformance/09-standard-lib/i18n-test.i18n")
+    OSL.I18N.SETLANGUAGE("en")
+
+    PRINT OSL.I18N.GET("greeting")
+    PRINT OSL.I18N.GET("farewell")
+END FUNCTION

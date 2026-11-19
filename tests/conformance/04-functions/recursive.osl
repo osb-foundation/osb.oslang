@@ -1,0 +1,11 @@
+FUNCTION Factorial(n)
+    IF n <= 1 THEN
+        RETURN 1
+    ELSE
+        RETURN n * Factorial(n - 1)
+    END
+END FUNCTION
+
+FUNCTION MAIN()
+    PRINT Factorial(5)
+END FUNCTION

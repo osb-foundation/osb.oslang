@@ -1,0 +1,18 @@
+FUNCTION MAIN()
+    VAR day
+    day = 3
+    SWITCH day
+        CASE 1
+            PRINT "Monday"
+        CASE 2
+            PRINT "Tuesday"
+        CASE 3
+            PRINT "Wednesday"
+        CASE 4
+            PRINT "Thursday"
+        CASE 5
+            PRINT "Friday"
+        DEFAULT
+            PRINT "Weekend"
+    END
+END FUNCTION

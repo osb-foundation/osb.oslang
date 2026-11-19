@@ -1,0 +1,11 @@
+FUNCTION MAIN()
+    VAR arr
+    arr = [1, 2, 3]
+    arr.PUSH(4)
+    arr.PUSH(5)
+    PRINT arr.COUNT()
+    PRINT arr.LAST()
+
+    arr.POP()
+    PRINT arr.LAST()
+END FUNCTION
