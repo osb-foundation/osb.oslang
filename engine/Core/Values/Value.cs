@@ -108,10 +108,280 @@ public readonly partial struct Value
         if (double.IsPositiveInfinity(value)) return "Infinity";
         if (double.IsNegativeInfinity(value)) return "-Infinity";
 
+        // Handle negative zero
+        if (value == 0 && BitConverter.DoubleToUInt64Bits(value) == 0x8000000000000000)
+            return "-0";
+
         // Match reference: integers without decimal, fixed precision for fractions
-        if (value == System.Math.Floor(value) && System.Math.Abs(value) < 1e15)
-            return value.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
-        return value.ToString("G15", System.Globalization.CultureInfo.InvariantCulture);
+        // Use bit operations instead of Math.Floor/Abs for freestanding compatibility
+        ulong bits = BitConverter.DoubleToUInt64Bits(value);
+        bool isNegative = (bits & 0x8000000000000000) != 0;
+        double absValue = isNegative ? -value : value;
+
+        // Check if integer-valued (no fractional part) and within safe integer range
+        // For doubles, integers up to 2^53 can be represented exactly
+        if (absValue < 9007199254740992.0) // 2^53
+        {
+            double truncated = (long)absValue;
+            if (absValue == truncated)
+            {
+                // Integer value - format without decimal point
+                return FormatInteger((long)value);
+            }
+        }
+
+        // Fractional value - use G15 equivalent formatting
+        return FormatDouble(value);
+    }
+
+    private static string FormatInteger(long value)
+    {
+        if (value == 0) return "0";
+        
+        bool negative = value < 0;
+        ulong abs = negative ? (ulong)(-value) : (ulong)value;
+        
+        // Count digits
+        int digits = 0;
+        ulong temp = abs;
+        while (temp > 0)
+        {
+            temp /= 10;
+            digits++;
+        }
+        
+        char[] chars = new char[digits + (negative ? 1 : 0)];
+        int pos = chars.Length - 1;
+        
+        while (abs > 0)
+        {
+            chars[pos--] = (char)('0' + (abs % 10));
+            abs /= 10;
+        }
+        
+        if (negative) chars[0] = '-';
+        
+        return new string(chars);
+    }
+
+    private static string FormatDouble(double value)
+    {
+        // G15-style formatting: 15 significant digits, scientific notation for very large/small
+        // This is a simplified but deterministic implementation
+        
+        bool negative = value < 0;
+        double absValue = negative ? -value : value;
+        
+        // Special cases handled above (NaN, Infinity, zero)
+        
+        // Determine if we should use scientific notation
+        // G15 uses scientific for: abs >= 1e15 or abs < 1e-4 (and not zero)
+        bool useScientific = absValue >= 1e15 || (absValue > 0 && absValue < 1e-4);
+        
+        if (useScientific)
+        {
+            return FormatScientific(value, negative, absValue);
+        }
+        else
+        {
+            return FormatFixed(value, negative, absValue);
+        }
+    }
+
+    private static string FormatScientific(double value, bool negative, double absValue)
+    {
+        // Format as d.ddddddddddddddE+xxx (15 significant digits)
+        // Find exponent
+        int exponent = 0;
+        double mantissa = absValue;
+        
+        if (mantissa >= 1.0)
+        {
+            while (mantissa >= 10.0)
+            {
+                mantissa /= 10.0;
+                exponent++;
+            }
+        }
+        else if (mantissa > 0)
+        {
+            while (mantissa < 1.0)
+            {
+                mantissa *= 10.0;
+                exponent--;
+            }
+        }
+        
+        // Round to 15 significant digits
+        // We'll format as 1 digit before decimal + 14 after = 15 significant digits
+        double rounded = MathRound(mantissa * 1e14) / 1e14;
+        
+        // Handle rounding that pushes mantissa to 10.0
+        if (rounded >= 10.0)
+        {
+            rounded /= 10.0;
+            exponent++;
+        }
+        
+        // Format mantissa
+        long intPart = (long)rounded;
+        double fracPart = rounded - intPart;
+        
+        // Get 14 fractional digits
+        long fracDigits = (long)MathRound(fracPart * 1e14);
+        
+        // Build string: [-]d.ddddddddddddddE[+/-]xxx
+        var sb = new System.Text.StringBuilder();
+        if (negative) sb.Append('-');
+        sb.Append(intPart);
+        sb.Append('.');
+        
+        // Pad fractional part to 14 digits
+        string fracStr = fracDigits.ToString();
+        sb.Append('0', 14 - fracStr.Length);
+        sb.Append(fracStr);
+        
+        sb.Append('E');
+        sb.Append(exponent >= 0 ? '+' : '-');
+        int absExp = exponent >= 0 ? exponent : -exponent;
+        if (absExp >= 100)
+        {
+            sb.Append(absExp);
+        }
+        else if (absExp >= 10)
+        {
+            sb.Append('0');
+            sb.Append(absExp);
+        }
+        else
+        {
+            sb.Append("00");
+            sb.Append(absExp);
+        }
+        
+        return sb.ToString();
+    }
+
+    private static string FormatFixed(double value, bool negative, double absValue)
+    {
+        // Format as fixed-point with up to 15 significant digits, with proper rounding
+        // G15 style: show all integer digits, then fractional digits up to 15 significant digits total
+        
+        // Round to 15 significant digits using decimal for precision
+        decimal rounded = RoundToSignificantDigitsDecimal(absValue, 15);
+        
+        // Extract integer and fractional parts from decimal
+        long intPart = (long)rounded;
+        decimal fracPart = rounded - intPart;
+        
+        var sb = new System.Text.StringBuilder();
+        if (negative) sb.Append('-');
+        sb.Append(FormatUnsignedInteger((ulong)intPart));
+        
+        if (fracPart > 0)
+        {
+            sb.Append('.');
+            // Generate fractional digits from decimal (up to 14)
+            for (int i = 0; i < 14; i++)
+            {
+                fracPart *= 10;
+                int digit = (int)fracPart;
+                sb.Append((char)('0' + digit));
+                fracPart -= digit;
+                if (fracPart == 0) break;
+            }
+        }
+        
+        return sb.ToString();
+    }
+
+    // Round a positive double to the specified number of significant digits, returns decimal
+    private static decimal RoundToSignificantDigitsDecimal(double value, int digits)
+    {
+        if (value == 0) return 0;
+        
+        // Find exponent such that value * 10^-exponent is in [1, 10)
+        int exponent = 0;
+        double temp = value;
+        if (temp >= 1.0)
+        {
+            while (temp >= 10.0)
+            {
+                temp /= 10.0;
+                exponent++;
+            }
+        }
+        else
+        {
+            while (temp < 1.0)
+            {
+                temp *= 10.0;
+                exponent--;
+            }
+        }
+        
+        // Scale using decimal for precision
+        int scaleExp = digits - 1 - exponent;
+        decimal scale = 1.0m;
+        if (scaleExp > 0)
+        {
+            for (int i = 0; i < scaleExp; i++)
+                scale *= 10.0m;
+        }
+        else if (scaleExp < 0)
+        {
+            for (int i = 0; i < -scaleExp; i++)
+                scale /= 10.0m;
+        }
+        
+        decimal dValue = (decimal)value;
+        decimal scaled = dValue * scale;
+        decimal rounded = Math.Floor(scaled + 0.5m);
+        return rounded / scale;
+    }
+
+    private static int CountDigits(ulong value)
+    {
+        if (value == 0) return 1;
+        int count = 0;
+        while (value > 0)
+        {
+            value /= 10;
+            count++;
+        }
+        return count;
+    }
+
+    private static string FormatUnsignedInteger(ulong value)
+    {
+        if (value == 0) return "0";
+        
+        int digits = 0;
+        ulong temp = value;
+        while (temp > 0)
+        {
+            temp /= 10;
+            digits++;
+        }
+        
+        char[] chars = new char[digits];
+        int pos = digits - 1;
+        
+        while (value > 0)
+        {
+            chars[pos--] = (char)('0' + (value % 10));
+            value /= 10;
+        }
+        
+        return new string(chars);
+    }
+
+    // Simple rounding helper - avoids System.Math.Round
+    private static double MathRound(double x)
+    {
+        if (x >= 0)
+            return (long)(x + 0.5);
+        return (long)(x - 0.5);
     }
 }
 
