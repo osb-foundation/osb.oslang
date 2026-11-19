@@ -76,6 +76,8 @@ public static class Keywords
         ["MATH"] = TokenType.Math,
         ["FILE"] = TokenType.File,
         ["DIR"] = TokenType.Dir,
+        ["DATE"] = TokenType.Date,
+        ["TIME"] = TokenType.Time,
         ["SHOW"] = TokenType.Show,
         ["MOD"] = TokenType.Mod,
         ["OSL"] = TokenType.Osl,

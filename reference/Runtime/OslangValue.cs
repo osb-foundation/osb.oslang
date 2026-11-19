@@ -214,6 +214,16 @@ public sealed class DateValue(int daysSinceEpoch) : OslangValue
         }
     }
 
+    public int DayOfWeek
+    {
+        get
+        {
+            // daysSinceEpoch is days since 1970-01-01 (Thursday)
+            // 0 = Thursday, so adjust to 0 = Sunday: (daysSinceEpoch + 4) % 7
+            return (int)((DaysSinceEpoch + 4) % 7);
+        }
+    }
+
     public static (int year, int month, int day) DaysToYMD(int daysSinceEpoch)
     {
         int doe = daysSinceEpoch + 719468; // days since 0000-03-01

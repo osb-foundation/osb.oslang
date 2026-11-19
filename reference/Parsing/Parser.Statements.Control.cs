@@ -33,6 +33,8 @@ public sealed partial class Parser
             TokenType.File => ParseNamespaceLedStatement(TokenType.File, "FILE"),
             TokenType.Dir => ParseNamespaceLedStatement(TokenType.Dir, "DIR"),
             TokenType.Osl => ParseNamespaceLedStatement(TokenType.Osl, "OSL"),
+            TokenType.Date => ParseNamespaceLedStatement(TokenType.Date, "DATE"),
+            TokenType.Time => ParseNamespaceLedStatement(TokenType.Time, "TIME"),
             _ => throw new SyntaxException(Current.Location, $"Unexpected token '{Current.Lexeme}' at start of statement."),
         };
     }

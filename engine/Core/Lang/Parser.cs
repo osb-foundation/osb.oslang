@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Recursive descent parser for OSLANG.

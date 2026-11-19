@@ -62,6 +62,8 @@ public static class Conversions
         ObjectValue obj => obj.ClassName,
         EnumValue ev => $"{ev.EnumTypeName}.{ev.MemberName}",
         EnumSetValue es => $"{es.EnumTypeName}[{string.Join("|", es.Values.Select(v => v.MemberName))}]",
+        DateValue dv => $"{dv.Year}-{dv.Month:D2}-{dv.Day:D2}",
+        TimeValue tv => $"{tv.Hour:D2}:{tv.Minute:D2}:{tv.Second:D2}",
         _ => throw new ArgumentOutOfRangeException(nameof(value)),
     };
 }

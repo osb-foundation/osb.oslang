@@ -1,6 +1,6 @@
-using System.Text;
+using Osb.Engine.Core.Providers;
 
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Lexical analyzer for OSLANG.
@@ -10,12 +10,17 @@ namespace Osb.Engine.Lang;
 public sealed class Lexer
 {
     private readonly string _source;
+    private readonly IUtf8Provider _utf8;
     private int _pos;
     private int _line = 1;
     private int _column = 1;
     private int _lineStart = 0;
 
-    public Lexer(string source) => _source = source ?? string.Empty;
+    public Lexer(string source, IUtf8Provider? utf8Provider = null)
+    {
+        _source = source ?? string.Empty;
+        _utf8 = utf8Provider ?? new DefaultUtf8Provider();
+    }
 
     /// <summary>
     /// Tokenizes the entire source into a list of tokens.
@@ -136,7 +141,7 @@ public sealed class Lexer
 
     private Token ReadIdentifierOrKeyword(SourceLocation start)
     {
-        var sb = new StringBuilder();
+        var sb = new System.Text.StringBuilder();
         sb.Append(_source[_pos - 1]); // first char already consumed
 
         while (!IsAtEnd && IsIdentifierPart(Current))
@@ -154,7 +159,7 @@ public sealed class Lexer
 
     private Token ReadNumber(SourceLocation start)
     {
-        var sb = new StringBuilder();
+        var sb = new System.Text.StringBuilder();
         sb.Append(_source[_pos - 1]);
 
         bool hasDot = false;
@@ -184,8 +189,8 @@ public sealed class Lexer
 
     private Token ReadString(SourceLocation start)
     {
-        var sb = new StringBuilder();
-        var raw = new StringBuilder();
+        var sb = new System.Text.StringBuilder();
+        var raw = new System.Text.StringBuilder();
         raw.Append('"');
 
         while (!IsAtEnd)
@@ -234,7 +239,7 @@ public sealed class Lexer
 
     private Token ReadDateOrTime(SourceLocation start)
     {
-        var sb = new StringBuilder();
+        var sb = new System.Text.StringBuilder();
         sb.Append('#');
 
         while (!IsAtEnd && Current != '#')
@@ -309,6 +314,7 @@ public sealed class Lexer
             '%' => Make(TokenType.Percent, "%", start),
 
             '=' when next == '=' => Make(TokenType.Equal, "==", start),
+            '=' when next == '>' => Make(TokenType.DoubleArrow, "=>", start),
             '=' => Make(TokenType.Assign, "=", start),
             '<' when next == '=' => Make(TokenType.LessEqual, "<=", start),
             '<' when next == '>' => Make(TokenType.NotEqual, "<>", start),

@@ -1,6 +1,7 @@
-namespace Osb.Engine.Values;
+namespace Osb.Engine.Core.Values;
 
-using Osb.Engine.Lang;
+using Osb.Engine.Core.Lang;
+using Osb.Engine.Core.Providers;
 
 /// <summary>
 /// Runtime type tags for the tagged value system.
@@ -140,10 +141,11 @@ public sealed class HeapString : HeapObject
 
     public override ValueKind Kind => ValueKind.String;
 
-    public HeapString(string text)
+    public HeapString(string text, IUtf8Provider? utf8Provider = null)
     {
+        var provider = utf8Provider ?? new DefaultUtf8Provider();
         // Validate and store as UTF-8
-        Utf8Bytes = System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty);
+        Utf8Bytes = provider.GetBytes(text ?? string.Empty);
 
         // Build code-point offset table (SQ-001: code-point indexing)
         // Each code point's starting byte offset
@@ -233,7 +235,11 @@ public sealed class HeapString : HeapObject
         return -1;
     }
 
-    public override string ToString() => System.Text.Encoding.UTF8.GetString(Utf8Bytes);
+    public override string ToString()
+    {
+        var provider = new DefaultUtf8Provider();
+        return provider.GetString(Utf8Bytes);
+    }
 
     private static int GetUtf8CodePointLength(byte firstByte)
     {

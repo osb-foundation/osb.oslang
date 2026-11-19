@@ -1,7 +1,7 @@
-using System.Runtime.CompilerServices;
-using Osb.Engine.Lang;
+using Osb.Engine.Core.Lang;
+using Osb.Engine.Core.Values;
 
-namespace Osb.Engine.Heap;
+namespace Osb.Engine.Core.Heap;
 
 /// <summary>
 /// Engine heap with bump allocator and precise mark-sweep GC.
@@ -11,11 +11,11 @@ public sealed class EngineHeap
 {
     private readonly byte[] _memory;
     private int _bumpPtr;
-    private readonly List<Values.HeapObject> _allocated = new();
-    private readonly Stack<Values.HeapObject> _markStack = new();
+    private readonly List<HeapObject> _allocated = new();
+    private readonly Stack<HeapObject> _markStack = new();
 
     // Roots: interpreter frames, globals, etc.
-    private readonly List<Values.Value> _roots = new();
+    private readonly List<Value> _roots = new();
 
     public EngineHeap(int sizeBytes = 2 * 1024 * 1024) // 2 MiB default
     {
@@ -30,7 +30,7 @@ public sealed class EngineHeap
     /// <summary>
     /// Allocates a heap object. May trigger GC if out of space.
     /// </summary>
-    public T Allocate<T>(Func<T> factory) where T : Values.HeapObject
+    public T Allocate<T>(Func<T> factory) where T : HeapObject
     {
         // Try fast bump allocation first
         // For simplicity, we use managed allocations here; in freestanding target
@@ -43,7 +43,7 @@ public sealed class EngineHeap
     /// <summary>
     /// Registers a root reference for GC.
     /// </summary>
-    public void AddRoot(Values.Value value)
+    public void AddRoot(Value value)
     {
         if (!value.IsNull && !value.IsImmediate)
         {
@@ -54,7 +54,7 @@ public sealed class EngineHeap
     /// <summary>
     /// Removes a root reference.
     /// </summary>
-    public void RemoveRoot(Values.Value value) => _roots.Remove(value);
+    public void RemoveRoot(Value value) => _roots.Remove(value);
 
     /// <summary>
     /// Performs a full mark-sweep collection.
@@ -100,19 +100,19 @@ public sealed class EngineHeap
         return freed;
     }
 
-    private void Mark(Values.Value value)
+    private void Mark(Value value)
     {
         if (value.IsNull || value.IsImmediate) return;
 
         var obj = value.Kind switch
         {
-            Values.ValueKind.String => value.AsString,
-            Values.ValueKind.Array => value.AsArray,
-            Values.ValueKind.Object => value.AsObject,
-            Values.ValueKind.EnumSet => value.AsEnumSet,
-            Values.ValueKind.Closure => value.AsClosure,
-            Values.ValueKind.KeyEvent => value.AsKeyEvent,
-            Values.ValueKind.NativeFunction => value.AsNativeFunctionObj,
+            ValueKind.String => value.AsString,
+            ValueKind.Array => value.AsArray,
+            ValueKind.Object => value.AsObject,
+            ValueKind.EnumSet => value.AsEnumSet,
+            ValueKind.Closure => value.AsClosure,
+            ValueKind.KeyEvent => value.AsKeyEvent,
+            ValueKind.NativeFunction => value.AsNativeFunctionObj,
             _ => null,
         };
 
@@ -122,33 +122,33 @@ public sealed class EngineHeap
         }
     }
 
-    private void ScanObject(Values.HeapObject obj)
+    private void ScanObject(HeapObject obj)
     {
         switch (obj)
         {
-            case Values.HeapArray arr:
+            case HeapArray arr:
                 foreach (var item in arr.Items)
                     Mark(item);
                 break;
 
-            case Values.HeapObjectInstance inst:
+            case HeapObjectInstance inst:
                 foreach (var field in inst.Fields)
                     Mark(field);
                 break;
 
-            case Values.HeapEnumSet eset:
+            case HeapEnumSet eset:
                 foreach (var item in eset.Values)
                     Mark(item);
                 break;
 
-            case Values.HeapClosure closure:
+            case HeapClosure closure:
                 foreach (var captured in closure.Captured)
                     Mark(captured);
                 break;
 
-            case Values.HeapKeyEvent:
-            case Values.HeapString:
-            case Values.HeapNativeFunction:
+            case HeapKeyEvent:
+            case HeapString:
+            case HeapNativeFunction:
                 // No outgoing references
                 break;
         }
@@ -157,41 +157,41 @@ public sealed class EngineHeap
     /// <summary>
     /// Allocates a string on the heap.
     /// </summary>
-    public Values.HeapString AllocString(string text) => Allocate(() => new Values.HeapString(text));
+    public HeapString AllocString(string text) => Allocate(() => new HeapString(text));
 
     /// <summary>
     /// Allocates an array on the heap.
     /// </summary>
-    public Values.HeapArray AllocArray(int capacity) => Allocate(() => new Values.HeapArray(capacity));
+    public HeapArray AllocArray(int capacity) => Allocate(() => new HeapArray(capacity));
 
     /// <summary>
     /// Allocates an object instance on the heap.
     /// </summary>
-    public Values.HeapObjectInstance AllocObject(Values.HeapClass classDef) => Allocate(() => new Values.HeapObjectInstance(classDef));
+    public HeapObjectInstance AllocObject(HeapClass classDef) => Allocate(() => new HeapObjectInstance(classDef));
 
     /// <summary>
     /// Allocates a class definition on the heap.
     /// </summary>
-    public Values.HeapClass AllocClass(string name, Values.HeapClass? baseClass, string[] fieldNames, Lang.MethodDecl[] methods)
-        => Allocate(() => new Values.HeapClass(name, baseClass, fieldNames, methods));
+    public HeapClass AllocClass(string name, HeapClass? baseClass, string[] fieldNames, Lang.MethodDecl[] methods)
+        => Allocate(() => new HeapClass(name, baseClass, fieldNames, methods));
 
     /// <summary>
     /// Allocates an enum set on the heap.
     /// </summary>
-    public Values.HeapEnumSet AllocEnumSet(string enumTypeName, Values.Value[] values)
-        => Allocate(() => new Values.HeapEnumSet(enumTypeName, values));
+    public HeapEnumSet AllocEnumSet(string enumTypeName, Value[] values)
+        => Allocate(() => new HeapEnumSet(enumTypeName, values));
 
     /// <summary>
     /// Allocates a closure on the heap.
     /// </summary>
-    public Values.HeapClosure AllocClosure(Lang.FunctionDecl function, Values.Value[] captured)
-        => Allocate(() => new Values.HeapClosure(function, captured));
+    public HeapClosure AllocClosure(Lang.FunctionDecl function, Value[] captured)
+        => Allocate(() => new HeapClosure(function, captured));
 
     /// <summary>
     /// Allocates a key event on the heap.
     /// </summary>
-    public Values.HeapKeyEvent AllocKeyEvent(int keyCode, char character, bool ctrl, bool alt, bool shift)
-        => Allocate(() => new Values.HeapKeyEvent(keyCode, character, ctrl, alt, shift));
+    public HeapKeyEvent AllocKeyEvent(int keyCode, char character, bool ctrl, bool alt, bool shift)
+        => Allocate(() => new HeapKeyEvent(keyCode, character, ctrl, alt, shift));
 }
 
 /// <summary>
@@ -200,9 +200,9 @@ public sealed class EngineHeap
 public struct GcHandle : IDisposable
 {
     private readonly EngineHeap _heap;
-    private readonly Values.Value _value;
+    private readonly Value _value;
 
-    public GcHandle(EngineHeap heap, Values.Value value)
+    public GcHandle(EngineHeap heap, Value value)
     {
         _heap = heap;
         _value = value;

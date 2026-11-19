@@ -9,4 +9,12 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="Core/Osb.Engine.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Core/**/*.cs" />
+  </ItemGroup>
+
 </Project>

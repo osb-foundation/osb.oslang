@@ -13,7 +13,7 @@ public static class StandardLibrary
     public static readonly IReadOnlyCollection<string> FunctionNames =
         ["STR", "NUMBER", "BOOL", "COUNT", "TYPEOF", "LEFT", "RIGHT", "INSERT", "REMOVE", "REPEAT", "TOUPPER", "TOLOWER", "TRIM",
          "DATE", "TIME", "DATE.NOW", "TIME.NOW",
-         "DATE.YEAR", "DATE.MONTH", "DATE.DAY",
+         "DATE.YEAR", "DATE.MONTH", "DATE.DAY", "DATE.DAYOFWEEK",
          "TIME.HOUR", "TIME.MINUTE", "TIME.SECOND",
          "DATE.ADDDAYS", "DATE.DIFFDAYS",
          "TIME.DIFFMILLIS"];
@@ -43,6 +43,7 @@ public static class StandardLibrary
             "DATE.YEAR" => DispatchDateTime("DATE.YEAR", args, location),
             "DATE.MONTH" => DispatchDateTime("DATE.MONTH", args, location),
             "DATE.DAY" => DispatchDateTime("DATE.DAY", args, location),
+            "DATE.DAYOFWEEK" => DispatchDateTime("DATE.DAYOFWEEK", args, location),
             "TIME.HOUR" => DispatchDateTime("TIME.HOUR", args, location),
             "TIME.MINUTE" => DispatchDateTime("TIME.MINUTE", args, location),
             "TIME.SECOND" => DispatchDateTime("TIME.SECOND", args, location),
@@ -119,6 +120,7 @@ public static class StandardLibrary
             "DATE.YEAR" => DateComponent(args, location, c => c.Year),
             "DATE.MONTH" => DateComponent(args, location, c => c.Month),
             "DATE.DAY" => DateComponent(args, location, c => c.Day),
+            "DATE.DAYOFWEEK" => DateComponent(args, location, c => c.DayOfWeek),
             "TIME.HOUR" => TimeComponent(args, location, t => t.Hour),
             "TIME.MINUTE" => TimeComponent(args, location, t => t.Minute),
             "TIME.SECOND" => TimeComponent(args, location, t => t.Second),

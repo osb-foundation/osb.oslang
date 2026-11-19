@@ -1,4 +1,4 @@
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Source location in a script file.

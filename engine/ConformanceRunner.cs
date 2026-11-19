@@ -1,11 +1,14 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using Osb.Engine.Lang;
-using Osb.Engine.Values;
-using Osb.Engine.Heap;
-using Osb.Engine.Eval;
-using Osb.Engine.Host;
+using Osb.Engine.Core.Lang;
+using Osb.Engine.Core.Values;
+using Osb.Engine.Core.Heap;
+using Osb.Engine.Core.Eval;
+using Osb.Engine.Core.Host;
+using Osb.Engine.Hosted;
+using Osb.Engine.Hosted.Providers;
+using HostedTimeProvider = Osb.Engine.Hosted.Providers.TimeProvider;
 
 namespace Osb.Engine.Conformance
 {
@@ -122,14 +125,18 @@ namespace Osb.Engine.Conformance
 
             try
             {
-                // Create engine
+                // Create engine with hosted providers
                 var heap = new EngineHeap();
                 var output = new StringWriter();
                 var host = new HostTest(output);
-                var interpreter = new Interpreter(heap, host);
+                var math = new MathProvider();
+                var time = new HostedTimeProvider();
+                var random = new RandomProvider();
+                var utf8 = new Utf8Provider();
+                var interpreter = new Interpreter(heap, host, math, time, random, utf8);
 
                 // Parse
-                var lexer = new Lexer(source);
+                var lexer = new Lexer(source, utf8);
                 var tokens = lexer.Tokenize();
                 var parser = new Parser(tokens);
                 var program = parser.Parse();

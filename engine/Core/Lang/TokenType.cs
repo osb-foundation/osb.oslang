@@ -1,4 +1,4 @@
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// OSLANG token types. Matches the reference implementation's TokenType.

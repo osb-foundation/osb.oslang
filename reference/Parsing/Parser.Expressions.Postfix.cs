@@ -121,6 +121,26 @@ public sealed partial class Parser
             case TokenType.Osb:
                 Advance();
                 return new NamespaceExpr("OSB", tok.Location);
+            case TokenType.Date:
+                if (CheckNext(TokenType.LParen))
+                {
+                    Advance(); // consume DATE
+                    Advance(); // consume '('
+                    var args = ParseArgList();
+                    return new CallExpr("DATE", args, tok.Location);
+                }
+                Advance();
+                return new NamespaceExpr("DATE", tok.Location);
+            case TokenType.Time:
+                if (CheckNext(TokenType.LParen))
+                {
+                    Advance(); // consume TIME
+                    Advance(); // consume '('
+                    var args = ParseArgList();
+                    return new CallExpr("TIME", args, tok.Location);
+                }
+                Advance();
+                return new NamespaceExpr("TIME", tok.Location);
         }
 
         if (BuiltinCallKeywords.Contains(tok.Type))

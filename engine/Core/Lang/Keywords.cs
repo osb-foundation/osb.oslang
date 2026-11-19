@@ -1,4 +1,4 @@
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Keyword lookup table for the lexer.

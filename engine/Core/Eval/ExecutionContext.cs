@@ -1,6 +1,9 @@
-namespace Osb.Engine.Eval;
+namespace Osb.Engine.Core.Eval;
 
-using Osb.Engine.Lang;
+using Osb.Engine.Core.Lang;
+using Osb.Engine.Core.Values;
+using Osb.Engine.Core.Heap;
+using Osb.Engine.Core.Host;
 
 /// <summary>
 /// Interpreter control flow results.
@@ -19,19 +22,19 @@ public enum ControlFlow
 /// </summary>
 public sealed class ExecutionContext
 {
-    public readonly Heap.EngineHeap Heap;
-    public readonly Host.IHostApi Host;
+    public readonly EngineHeap Heap;
+    public readonly IHostApi Host;
     public readonly List<Frame> Frames = new();
-    public readonly List<Values.Value> Globals = new(); // GLOBAL variables
-    public Values.Value CurrentException;
+    public readonly List<Value> Globals = new(); // GLOBAL variables
+    public Value CurrentException;
     public string CurrentExceptionMessage;
     public SourceLocation ExceptionLocation;
     public ControlFlow CurrentFlow = ControlFlow.Normal;
-    public Values.Value ReturnValue;
+    public Value ReturnValue;
     public int LoopDepth = 0;
     public bool InSwitch = false;
 
-    public ExecutionContext(Heap.EngineHeap heap, Host.IHostApi host)
+    public ExecutionContext(EngineHeap heap, IHostApi host)
     {
         Heap = heap;
         Host = host;
@@ -43,7 +46,7 @@ public sealed class ExecutionContext
 
     public void Throw(string message, SourceLocation location)
     {
-        CurrentException = Values.Value.String(Heap.AllocString(message));
+        CurrentException = Value.String(Heap.AllocString(message));
         CurrentExceptionMessage = message;
         ExceptionLocation = location;
         CurrentFlow = ControlFlow.Exception;
@@ -56,15 +59,15 @@ public sealed class ExecutionContext
 public sealed class Frame
 {
     public readonly Lang.FunctionDecl Function;
-    public readonly Values.Value This; // ME for methods, null for functions
-    public readonly Values.Value Base; // BASE for constructors
-    public readonly Dictionary<string, Values.Value> Locals = new(StringComparer.OrdinalIgnoreCase);
+    public readonly Value This; // ME for methods, null for functions
+    public readonly Value Base; // BASE for constructors
+    public readonly Dictionary<string, Value> Locals = new(StringComparer.OrdinalIgnoreCase);
     public int InstructionPointer = 0;
     public int LoopDepth = 0;
     public bool InTry = false;
     public int TryCatchFrameIndex = -1;
 
-    public Frame(Lang.FunctionDecl function, Values.Value thisRef = default, Values.Value baseRef = default)
+    public Frame(Lang.FunctionDecl function, Value thisRef = default, Value baseRef = default)
     {
         Function = function;
         This = thisRef;

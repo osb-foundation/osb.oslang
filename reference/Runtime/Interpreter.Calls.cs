@@ -71,6 +71,11 @@ internal sealed partial class Interpreter
             throw new OslangRuntimeException(location, $"Unknown DIR method '{methodName}'.");
         }
 
+        if (namespaceName.Equals("DATE", StringComparison.OrdinalIgnoreCase) || namespaceName.Equals("TIME", StringComparison.OrdinalIgnoreCase))
+        {
+            return StandardLibrary.Call($"{namespaceName}.{methodName}", args, location);
+        }
+
         if (namespaceName.Equals("OSL", StringComparison.OrdinalIgnoreCase))
         {
             if (methodName.Equals("I18N", StringComparison.OrdinalIgnoreCase))

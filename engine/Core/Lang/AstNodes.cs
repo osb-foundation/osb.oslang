@@ -1,4 +1,4 @@
-namespace Osb.Engine.Lang;
+namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Base class for all AST nodes.

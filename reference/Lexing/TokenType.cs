@@ -75,6 +75,10 @@ public enum TokenType
     File,
     Dir,
 
+    // OSLANG 0.5 - Date/Time namespace
+    Date,
+    Time,
+
     // OSLANG 0.6
     Show,
     Mod,
