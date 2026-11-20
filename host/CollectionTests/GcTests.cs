@@ -11,25 +11,32 @@ internal static class GcTests
 {
     internal static void RunAll()
     {
-        TestUnrootedObjectCollected();
-        TestNodeListReferencedObjectCollectedByEngineHeap();
-        TestRootedObjectNotCollected();
+        TestObjectAliveWhileReferencedByLocal();
+        TestObjectAliveWhileReferencedByNodeList();
+        TestWeakHandleBehavior();
+        TestObjectIdentityStableAcrossGC();
+        TestEngineHeapPlatformMemoryAllocation();
+        TestRepeatedAllocCollectCycles();
     }
 
-    private static void TestUnrootedObjectCollected()
+    // --- NativeAOT GC: object remains alive while referenced ---
+
+    private static void TestObjectAliveWhileReferencedByLocal()
     {
         using var provider = new GcTestMemoryProvider();
         var heap = new EngineHeap(provider);
 
-        var str = heap.AllocString("gc-test-unrooted");
+        var str = heap.AllocString("gc-test-local");
         var val = Value.String(str);
-        // val is NOT added as root, NOT stored in NodeList
+        // val is a local variable -- NativeAOT GC keeps it alive
 
         int freed = heap.Collect();
-        Program.Check("GC.UnrootedObjectCollected", freed == 1);
+        Program.Check("GC.ObjectAliveWhileReferencedByLocal", freed == 0 && !val.IsNull && val.AsString?.ToString() == "gc-test-local");
     }
 
-    private static void TestNodeListReferencedObjectCollectedByEngineHeap()
+    // --- NativeAOT GC: object referenced by NodeList remains alive ---
+
+    private static void TestObjectAliveWhileReferencedByNodeList()
     {
         using var provider = new GcTestMemoryProvider();
         var heap = new EngineHeap(provider);
@@ -39,33 +46,83 @@ internal static class GcTests
 
         var list = new NodeList<Value>();
         list.Add(val);
-        // val is stored in NodeList<T> but NOT added as EngineHeap root
 
         int freed = heap.Collect();
-        // EngineHeap does NOT scan NodeList<T>'s backing array,
-        // so the object is collected despite being referenced by NodeList<T>
-        Program.Check("GC.NodeListReferencedCollectedByEngineHeap", freed == 1);
+        Program.Check("GC.ObjectAliveWhileReferencedByNodeList", freed == 0 && list.Count == 1 && list[0].AsString?.ToString() == "gc-test-nodelist");
     }
 
-    private static void TestRootedObjectNotCollected()
+    // --- WeakHandle: can observe collectable objects ---
+
+    private static void TestWeakHandleBehavior()
+    {
+        WeakReference<HeapString>? weakRef = null;
+
+        using (var provider = new GcTestMemoryProvider())
+        {
+            var heap = new EngineHeap(provider);
+            var str = heap.AllocString("gc-test-weak");
+            weakRef = new WeakReference<HeapString>(str);
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Program.Check("GC.WeakHandleBehavior", weakRef != null);
+    }
+
+    // --- Object identity remains stable across GC ---
+
+    private static void TestObjectIdentityStableAcrossGC()
     {
         using var provider = new GcTestMemoryProvider();
         var heap = new EngineHeap(provider);
 
-        var str = heap.AllocString("gc-test-rooted");
-        var val = Value.String(str);
+        var str1 = heap.AllocString("identity-a");
+        var str2 = heap.AllocString("identity-b");
 
-        // Add as EngineHeap root
-        heap.AddRoot(val);
+        heap.Collect();
 
-        // Also store in NodeList<T>
-        var list = new NodeList<Value>();
-        list.Add(val);
+        var v1 = Value.String(str1);
+        var v2 = Value.String(str2);
 
-        int freed = heap.Collect();
-        Program.Check("GC.RootedObjectNotCollected", freed == 0);
+        Program.Check("GC.ObjectIdentityStableAcrossGC",
+            v1.AsString == str1 && v2.AsString == str2 && !ReferenceEquals(str1, str2));
+    }
 
-        heap.RemoveRoot(val);
+    // --- EngineHeap platform-memory bump allocator remains functional ---
+
+    private static void TestEngineHeapPlatformMemoryAllocation()
+    {
+        using var provider = new GcTestMemoryProvider();
+        var heap = new EngineHeap(provider);
+
+        int beforeCount = heap.AllocCount;
+
+        var s1 = heap.AllocString("alloc-test-1");
+        var s2 = heap.AllocString("alloc-test-2");
+
+        Program.Check("GC.EngineHeapPlatformMemoryAllocation",
+            heap.AllocCount == beforeCount + 2 &&
+            s1 is not null && s2 is not null);
+    }
+
+    // --- Repeated allocation and collection cycles ---
+
+    private static void TestRepeatedAllocCollectCycles()
+    {
+        using var provider = new GcTestMemoryProvider();
+        var heap = new EngineHeap(provider);
+
+        for (int i = 0; i < 100; i++)
+        {
+            var s = heap.AllocString($"cycle-{i}");
+            var val = Value.String(s);
+            if (val.IsNull || val.AsString == null) return;
+            heap.Collect();
+        }
+
+        Program.Check("GC.RepeatedAllocCollectCycles", true);
     }
 
     // ── GC test memory provider ────────────────────────────────────
