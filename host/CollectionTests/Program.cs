@@ -31,6 +31,10 @@ internal static class Program
         LexerTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Parser Tests ===");
+        ParserTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }
