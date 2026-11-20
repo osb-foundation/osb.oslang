@@ -30,7 +30,7 @@ internal static class BigIntegerOps
             if (carry > 0)
             {
                 Array.Resize(ref result, result.Length + 1);
-                result[^1] = carry;
+                result[result.Length - 1] = carry;
             }
         }
 

@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+
+    <AssemblyName>OsbEngineProbe</AssemblyName>
+    <RootNamespace>Osb.Engine.Probe</RootNamespace>
+
+    <!-- Freestanding NativeAOT compilation against MiniCoreLib -->
+    <NoStdLib>true</NoStdLib>
+    <NoConfig>true</NoConfig>
+    <RuntimeMetadataVersion>v4.0.30319</RuntimeMetadataVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <DefineConstants>$(DefineConstants);TARGET_64BIT</DefineConstants>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+
+    <!-- NativeAOT publishing -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!-- Link all MiniCoreLib source files from osb.core (canonical copies) -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)../../../osb.core/src/*.cs" Link="MiniCoreLib/%(FileName)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Link Engine.Core source files directly (not via project reference) -->
+  <ItemGroup>
+    <Compile Include="../Core/Collections/*.cs" />
+    <Compile Include="../Core/Eval/*.cs" />
+    <Compile Include="../Core/Heap/*.cs" />
+    <Compile Include="../Core/Host/*.cs" />
+    <Compile Include="../Core/Lang/*.cs" />
+    <Compile Include="../Core/Math/*.cs" />
+    <Compile Include="../Core/Providers/*.cs" />
+    <Compile Include="../Core/Values/*.cs" />
+  </ItemGroup>
+
+  <!-- Probe entry point -->
+  <ItemGroup>
+    <Compile Include="ProbeMain.cs" />
+    <Compile Include="GlobalUsings.cs" />
+  </ItemGroup>
+
+  <!-- Fail with a clear message when the sibling repo is missing -->
+  <Target Name="CheckSiblings" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)../../../osb.core/src/MiniCoreLib.cs')"
+           Text="osb.core sibling repo not found (expected ../../osb.core/src/MiniCoreLib.cs). Clone the OSB repos side by side; see README.md." />
+  </Target>
+
+  <!-- Remove every assembly reference the .NET SDK added (matches the zerosharp samples) -->
+  <Target Name="CustomizeReferences" BeforeTargets="BeforeCompile" AfterTargets="FindReferenceAssembliesForReferences">
+    <ItemGroup>
+      <ReferencePathWithRefAssemblies Remove="@(ReferencePathWithRefAssemblies)" />
+      <ReferencePath Remove="@(ReferencePath)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RemoveHostConfigurationOptions" BeforeTargets="WriteIlcRspFileForCompilation" DependsOnTargets="PrepareForILLink">
+    <ItemGroup>
+      <RuntimeHostConfigurationOption Remove="@(RuntimeHostConfigurationOption)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

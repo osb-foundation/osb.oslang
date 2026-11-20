@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Osb.Engine.Core.Collections;
 
 namespace Osb.Engine.Core.Lang;
@@ -62,9 +64,9 @@ public partial class Parser
     }
 
     private bool Check(TokenType type) => !IsAtEnd && Current.Type == type;
-    private bool CheckAny(params TokenType[] types) => !IsAtEnd && types.Contains(Current.Type);
+    private bool CheckAny(params TokenType[] types) => !IsAtEnd && Array.IndexOf(types, Current.Type) >= 0;
 
-    private Token Current => IsAtEnd ? _tokens[^1] : _tokens[_pos];
+    private Token Current => IsAtEnd ? _tokens[_tokens.Count - 1] : _tokens[_pos];
     private bool IsAtEnd => _pos >= _tokens.Count || _tokens[_pos].Type == TokenType.Eof;
 
     private Token Advance()

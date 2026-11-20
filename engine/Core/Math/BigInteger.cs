@@ -1,3 +1,4 @@
+using System;
 namespace Osb.Engine.Core.Math;
 
 /// <summary>
@@ -58,7 +59,7 @@ public readonly struct BigInteger : IEquatable<BigInteger>, IComparable<BigInteg
 
     public bool IsZero => _words.Length == 0 || (_words.Length == 1 && _words[0] == 0);
     public bool IsOne => _words.Length == 1 && _words[0] == 1 && !_isNegative;
-    public int BitLength => _words.Length == 0 ? 0 : (int)(64 * (_words.Length - 1) + BitOperations.Log2(_words[^1]) + 1);
+    public int BitLength => _words.Length == 0 ? 0 : (int)(64 * (_words.Length - 1) + BitOperations.Log2(_words[_words.Length - 1]) + 1);
 
     public static BigInteger operator <<(BigInteger value, int shift) => BigIntegerOps.ShiftLeft(value, shift);
     public static BigInteger operator >>(BigInteger value, int shift) => BigIntegerOps.ShiftRight(value, shift);

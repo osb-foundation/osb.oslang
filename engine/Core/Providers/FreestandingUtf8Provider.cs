@@ -1,3 +1,4 @@
+using System;
 namespace Osb.Engine.Core.Providers;
 
 /// <summary>
@@ -13,7 +14,7 @@ public class FreestandingUtf8Provider : IUtf8Provider
 
     public byte[] GetBytes(string s)
     {
-        if (string.IsNullOrEmpty(s)) return [];
+        if (s == null || s.Length == 0) return [];
 
         // First pass: count bytes needed (correctly handling surrogate pairs)
         int byteCount = 0;
@@ -28,9 +29,9 @@ public class FreestandingUtf8Provider : IUtf8Provider
             {
                 byteCount += 2;
             }
-            else if (char.IsHighSurrogate(c))
+            else if (c >= 0xD800 && c <= 0xDBFF)
             {
-                if (i + 1 < s.Length && char.IsLowSurrogate(s[i + 1]))
+                if (i + 1 < s.Length && s[i + 1] >= 0xDC00 && s[i + 1] <= 0xDFFF)
                 {
                     // Valid surrogate pair -> 4 bytes
                     byteCount += 4;
@@ -42,7 +43,7 @@ public class FreestandingUtf8Provider : IUtf8Provider
                     byteCount += 3;
                 }
             }
-            else if (char.IsLowSurrogate(c))
+            else if (c >= 0xDC00 && c <= 0xDFFF)
             {
                 // Unpaired low surrogate -> replacement char (3 bytes)
                 byteCount += 3;
@@ -62,11 +63,11 @@ public class FreestandingUtf8Provider : IUtf8Provider
             char c = s[i];
             int codePoint;
 
-            if (char.IsHighSurrogate(c))
+            if (c >= 0xD800 && c <= 0xDBFF)
             {
-                if (i + 1 < s.Length && char.IsLowSurrogate(s[i + 1]))
+                if (i + 1 < s.Length && s[i + 1] >= 0xDC00 && s[i + 1] <= 0xDFFF)
                 {
-                    codePoint = char.ConvertToUtf32(c, s[i + 1]);
+                    codePoint = ((c - 0xD800) << 10) + (s[i + 1] - 0xDC00) + 0x10000;
                     i++;
                 }
                 else
@@ -76,7 +77,7 @@ public class FreestandingUtf8Provider : IUtf8Provider
                     continue;
                 }
             }
-            else if (char.IsLowSurrogate(c))
+            else if (c >= 0xDC00 && c <= 0xDFFF)
             {
                 // Unpaired low surrogate
                 EncodeReplacement(bytes, ref index);
@@ -96,7 +97,7 @@ public class FreestandingUtf8Provider : IUtf8Provider
     public string GetString(byte[] bytes)
     {
         if (bytes == null || bytes.Length == 0) return string.Empty;
-        return GetString((ReadOnlySpan<byte>)bytes);
+        return GetString(new ReadOnlySpan<byte>(bytes));
     }
 
     public string GetString(ReadOnlySpan<byte> bytes)
