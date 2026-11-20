@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+
+    <AssemblyName>OsbEngineNativeAot</AssemblyName>
+    <RootNamespace>Osb.Engine.NativeAot</RootNamespace>
+
+    <!-- Official .NET NativeAOT runtime (M8.5) -->
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <DefineConstants>$(DefineConstants);TARGET_64BIT</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <!-- Link Engine.Core source files directly -->
+  <ItemGroup>
+    <Compile Include="Core/Collections/*.cs" />
+    <Compile Include="Core/Eval/*.cs" />
+    <Compile Include="Core/Heap/*.cs" />
+    <Compile Include="Core/Host/*.cs" />
+    <Compile Include="Core/Lang/*.cs" />
+    <Compile Include="Core/Math/*.cs" />
+    <Compile Include="Core/Providers/*.cs" />
+    <Compile Include="Core/Values/*.cs" />
+  </ItemGroup>
+
+  <!-- Link Hosted providers (BCL-based platform implementations) -->
+  <ItemGroup>
+    <Compile Include="Hosted/HostTest.cs" />
+    <Compile Include="Hosted/Providers/*.cs" />
+  </ItemGroup>
+
+  <!-- NativeAOT entry point -->
+  <ItemGroup>
+    <Compile Include="NativeAotMain.cs" />
+  </ItemGroup>
+
+</Project>
