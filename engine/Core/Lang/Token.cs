@@ -3,8 +3,19 @@ namespace Osb.Engine.Core.Lang;
 /// <summary>
 /// Source location in a script file.
 /// </summary>
-public readonly record struct SourceLocation(int Line, int Column, int Offset)
+public readonly struct SourceLocation
 {
+    public readonly int Line;
+    public readonly int Column;
+    public readonly int Offset;
+
+    public SourceLocation(int line, int column, int offset)
+    {
+        Line = line;
+        Column = column;
+        Offset = offset;
+    }
+
     public static readonly SourceLocation Unknown = new(0, 0, 0);
 
     public override string ToString() => $"Line {Line}, Column {Column}";
@@ -13,7 +24,7 @@ public readonly record struct SourceLocation(int Line, int Column, int Offset)
 /// <summary>
 /// A lexical token with type, text, location, and optional typed values.
 /// </summary>
-public readonly record struct Token
+public readonly struct Token
 {
     public readonly TokenType Type;
     public readonly string Text;

@@ -3,143 +3,49 @@ namespace Osb.Engine.Core.Lang;
 /// <summary>
 /// Base class for all AST nodes.
 /// </summary>
-public abstract record AstNode(SourceLocation Location);
+public abstract class AstNode
+{
+    public SourceLocation Location { get; }
+
+    protected AstNode(SourceLocation location) => Location = location;
+}
 
 /// <summary>
 /// Expression base class.
 /// </summary>
-public abstract record Expr(SourceLocation Location) : AstNode(Location);
+public abstract class Expr : AstNode
+{
+    protected Expr(SourceLocation location) : base(location) { }
+}
 
 /// <summary>
 /// Statement base class.
 /// </summary>
-public abstract record Stmt(SourceLocation Location) : AstNode(Location);
+public abstract class Stmt : AstNode
+{
+    protected Stmt(SourceLocation location) : base(location) { }
+}
 
 /// <summary>
-/// Program - top-level container.
+/// Class member base class.
 /// </summary>
-public sealed record Program(
-    IReadOnlyList<FunctionDecl> Functions,
-    IReadOnlyList<ClassDecl> Classes,
-    IReadOnlyList<InterfaceDecl> Interfaces,
-    IReadOnlyList<EnumDecl> Enums,
-    IReadOnlyList<UsingDecl> Usings,
-    IReadOnlyList<EventDecl> Events
-) : AstNode(SourceLocation.Unknown);
+public abstract class MemberDecl : AstNode
+{
+    public Visibility Visibility { get; }
+
+    protected MemberDecl(Visibility visibility, SourceLocation location) : base(location)
+    {
+        Visibility = visibility;
+    }
+}
 
 /// <summary>
-/// Function declaration.
+/// Assignment target base class.
 /// </summary>
-public sealed record FunctionDecl(
-    string Name,
-    IReadOnlyList<ParameterDecl> Parameters,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Parameter declaration.
-/// </summary>
-public sealed record ParameterDecl(
-    string Name,
-    string? TypeAnnotation,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Class declaration.
-/// </summary>
-public sealed record ClassDecl(
-    string Name,
-    IReadOnlyList<string> BaseClasses,
-    IReadOnlyList<MemberDecl> Members,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Class member (field, constructor, method).
-/// </summary>
-public abstract record MemberDecl(
-    Visibility Visibility,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Field/property declaration.
-/// </summary>
-public sealed record PropertyDecl(
-    Visibility Visibility,
-    string Name,
-    string? TypeAnnotation,
-    Expr? DefaultValue,
-    SourceLocation Location
-) : MemberDecl(Visibility, Location);
-
-/// <summary>
-/// Constructor declaration.
-/// </summary>
-public sealed record ConstructorDecl(
-    Visibility Visibility,
-    IReadOnlyList<ParameterDecl> Parameters,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : MemberDecl(Visibility, Location);
-
-/// <summary>
-/// Method declaration.
-/// </summary>
-public sealed record MethodDecl(
-    Visibility Visibility,
-    string Name,
-    IReadOnlyList<ParameterDecl> Parameters,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : MemberDecl(Visibility, Location);
-
-/// <summary>
-/// Interface declaration.
-/// </summary>
-public sealed record InterfaceDecl(
-    string Name,
-    IReadOnlyList<string> BaseInterfaces,
-    IReadOnlyList<MethodDecl> Methods,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Enum declaration.
-/// </summary>
-public sealed record EnumDecl(
-    string Name,
-    IReadOnlyList<EnumMemberDecl> Members,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Enum member.
-/// </summary>
-public sealed record EnumMemberDecl(
-    string Name,
-    Expr? Value,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Using declaration (module import).
-/// </summary>
-public sealed record UsingDecl(
-    string ModuleName,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Event declaration.
-/// </summary>
-public sealed record EventDecl(
-    string Name,
-    IReadOnlyList<ParameterDecl> Parameters,
-    SourceLocation Location
-) : AstNode(Location);
+public abstract class AssignTarget : AstNode
+{
+    protected AssignTarget(SourceLocation location) : base(location) { }
+}
 
 /// <summary>
 /// Visibility modifier.
@@ -151,318 +57,216 @@ public enum Visibility
     Private,
 }
 
-#region Expressions
+/// <summary>
+/// Program - top-level container.
+/// </summary>
+public sealed class Program : AstNode
+{
+    public IReadOnlyList<FunctionDecl> Functions { get; }
+    public IReadOnlyList<ClassDecl> Classes { get; }
+    public IReadOnlyList<InterfaceDecl> Interfaces { get; }
+    public IReadOnlyList<EnumDecl> Enums { get; }
+    public IReadOnlyList<UsingDecl> Usings { get; }
+    public IReadOnlyList<EventDecl> Events { get; }
+
+    public Program(
+        IReadOnlyList<FunctionDecl> functions,
+        IReadOnlyList<ClassDecl> classes,
+        IReadOnlyList<InterfaceDecl> interfaces,
+        IReadOnlyList<EnumDecl> enums,
+        IReadOnlyList<UsingDecl> usings,
+        IReadOnlyList<EventDecl> events)
+        : base(SourceLocation.Unknown)
+    {
+        Functions = functions;
+        Classes = classes;
+        Interfaces = interfaces;
+        Enums = enums;
+        Usings = usings;
+        Events = events;
+    }
+}
 
 /// <summary>
-/// Literal expressions.
+/// Function declaration.
 /// </summary>
-public sealed record NumberLiteralExpr(double Value, SourceLocation Location) : Expr(Location);
-public sealed record StringLiteralExpr(string Value, SourceLocation Location) : Expr(Location);
-public sealed record DateLiteralExpr(int DaysSinceEpoch, SourceLocation Location) : Expr(Location);
-public sealed record TimeLiteralExpr(long MillisSinceMidnight, SourceLocation Location) : Expr(Location);
-public sealed record BooleanLiteralExpr(bool Value, SourceLocation Location) : Expr(Location);
-public sealed record NullLiteralExpr(SourceLocation Location) : Expr(Location);
+public sealed class FunctionDecl : AstNode
+{
+    public string Name { get; }
+    public IReadOnlyList<ParameterDecl> Parameters { get; }
+    public IReadOnlyList<Stmt> Body { get; }
+
+    public FunctionDecl(string name, IReadOnlyList<ParameterDecl> parameters, IReadOnlyList<Stmt> body, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        Parameters = parameters;
+        Body = body;
+    }
+}
 
 /// <summary>
-/// Identifier expression.
+/// Parameter declaration.
 /// </summary>
-public sealed record IdentifierExpr(string Name, SourceLocation Location) : Expr(Location);
+public sealed class ParameterDecl : AstNode
+{
+    public string Name { get; }
+    public string? TypeAnnotation { get; }
+
+    public ParameterDecl(string name, string? typeAnnotation, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        TypeAnnotation = typeAnnotation;
+    }
+}
 
 /// <summary>
-/// Array literal expression.
+/// Class declaration.
 /// </summary>
-public sealed record ArrayLiteralExpr(IReadOnlyList<Expr> Elements, SourceLocation Location) : Expr(Location);
+public sealed class ClassDecl : AstNode
+{
+    public string Name { get; }
+    public IReadOnlyList<string> BaseClasses { get; }
+    public IReadOnlyList<MemberDecl> Members { get; }
+
+    public ClassDecl(string name, IReadOnlyList<string> baseClasses, IReadOnlyList<MemberDecl> members, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        BaseClasses = baseClasses;
+        Members = members;
+    }
+}
 
 /// <summary>
-/// Binary operation.
+/// Field/property declaration.
 /// </summary>
-public sealed record BinaryExpr(
-    string Operator,
-    Expr Left,
-    Expr Right,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class PropertyDecl : MemberDecl
+{
+    public string Name { get; }
+    public string? TypeAnnotation { get; }
+    public Expr? DefaultValue { get; }
+
+    public PropertyDecl(Visibility visibility, string name, string? typeAnnotation, Expr? defaultValue, SourceLocation location)
+        : base(visibility, location)
+    {
+        Name = name;
+        TypeAnnotation = typeAnnotation;
+        DefaultValue = defaultValue;
+    }
+}
 
 /// <summary>
-/// Unary operation.
+/// Constructor declaration.
 /// </summary>
-public sealed record UnaryExpr(
-    string Operator,
-    Expr Operand,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class ConstructorDecl : MemberDecl
+{
+    public IReadOnlyList<ParameterDecl> Parameters { get; }
+    public IReadOnlyList<Stmt> Body { get; }
+
+    public ConstructorDecl(Visibility visibility, IReadOnlyList<ParameterDecl> parameters, IReadOnlyList<Stmt> body, SourceLocation location)
+        : base(visibility, location)
+    {
+        Parameters = parameters;
+        Body = body;
+    }
+}
 
 /// <summary>
-/// Function call.
+/// Method declaration.
 /// </summary>
-public sealed record CallExpr(
-    string Name,
-    IReadOnlyList<Expr> Args,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class MethodDecl : MemberDecl
+{
+    public string Name { get; }
+    public IReadOnlyList<ParameterDecl> Parameters { get; }
+    public IReadOnlyList<Stmt> Body { get; }
+
+    public MethodDecl(Visibility visibility, string name, IReadOnlyList<ParameterDecl> parameters, IReadOnlyList<Stmt> body, SourceLocation location)
+        : base(visibility, location)
+    {
+        Name = name;
+        Parameters = parameters;
+        Body = body;
+    }
+}
 
 /// <summary>
-/// Method call.
+/// Interface declaration.
 /// </summary>
-public sealed record MethodCallExpr(
-    Expr Object,
-    string MethodName,
-    IReadOnlyList<Expr> Args,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class InterfaceDecl : AstNode
+{
+    public string Name { get; }
+    public IReadOnlyList<string> BaseInterfaces { get; }
+    public IReadOnlyList<MethodDecl> Methods { get; }
+
+    public InterfaceDecl(string name, IReadOnlyList<string> baseInterfaces, IReadOnlyList<MethodDecl> methods, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        BaseInterfaces = baseInterfaces;
+        Methods = methods;
+    }
+}
 
 /// <summary>
-/// Member access (obj.prop).
+/// Enum declaration.
 /// </summary>
-public sealed record MemberAccessExpr(
-    Expr Object,
-    string MemberName,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class EnumDecl : AstNode
+{
+    public string Name { get; }
+    public IReadOnlyList<EnumMemberDecl> Members { get; }
+
+    public EnumDecl(string name, IReadOnlyList<EnumMemberDecl> members, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        Members = members;
+    }
+}
 
 /// <summary>
-/// Index access (arr[i]).
+/// Enum member.
 /// </summary>
-public sealed record IndexExpr(
-    Expr Array,
-    Expr Index,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class EnumMemberDecl : AstNode
+{
+    public string Name { get; }
+    public Expr? Value { get; }
+
+    public EnumMemberDecl(string name, Expr? value, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        Value = value;
+    }
+}
 
 /// <summary>
-/// New expression (NEW Class(args)).
+/// Using declaration (module import).
 /// </summary>
-public sealed record NewExpr(
-    string ClassName,
-    IReadOnlyList<Expr> Args,
-    SourceLocation Location
-) : Expr(Location);
+public sealed class UsingDecl : AstNode
+{
+    public string ModuleName { get; }
+
+    public UsingDecl(string moduleName, SourceLocation location)
+        : base(location)
+    {
+        ModuleName = moduleName;
+    }
+}
 
 /// <summary>
-/// ME expression (current object).
+/// Event declaration.
 /// </summary>
-public sealed record MeExpr(SourceLocation Location) : Expr(Location);
+public sealed class EventDecl : AstNode
+{
+    public string Name { get; }
+    public IReadOnlyList<ParameterDecl> Parameters { get; }
 
-/// <summary>
-/// BASE expression (base class).
-/// </summary>
-public sealed record BaseExpr(SourceLocation Location) : Expr(Location);
-
-/// <summary>
-/// Namespace expression (MATH, FILE, DATE, etc.).
-/// </summary>
-public sealed record NamespaceExpr(string NamespaceName, SourceLocation Location) : Expr(Location);
-
-/// <summary>
-/// Namespace function call (DATE(...), TIME(...), MATH.PI(...) etc.).
-/// </summary>
-public sealed record NamespaceCallExpr(
-    string NamespaceName,
-    IReadOnlyList<Expr> Args,
-    SourceLocation Location
-) : Expr(Location);
-
-/// <summary>
-/// Postfix increment/decrement.
-/// </summary>
-public sealed record PostfixExpr(
-    string Operator,
-    Expr Operand,
-    SourceLocation Location
-) : Expr(Location);
-
-#endregion
-
-#region Statements
-
-/// <summary>
-/// Variable declaration.
-/// </summary>
-public sealed record VarDeclStmt(
-    string Name,
-    string? TypeAnnotation,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Assignment statement.
-/// </summary>
-public sealed record AssignStmt(
-    AssignTarget Target,
-    Expr Value,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Assignment target (variable, index, member).
-/// </summary>
-public abstract record AssignTarget(SourceLocation Location) : AstNode(Location);
-
-public sealed record VariableTarget(string Name, SourceLocation Location) : AssignTarget(Location);
-public sealed record IndexTarget(Expr Array, Expr Index, SourceLocation Location) : AssignTarget(Location);
-public sealed record MemberTarget(Expr Object, string MemberName, SourceLocation Location) : AssignTarget(Location);
-
-/// <summary>
-/// Print statement.
-/// </summary>
-public sealed record PrintStmt(
-    IReadOnlyList<Expr> Expressions,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Show statement (no newline).
-/// </summary>
-public sealed record ShowStmt(
-    IReadOnlyList<Expr> Expressions,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Input statement.
-/// </summary>
-public sealed record InputStmt(
-    string VariableName,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// If statement.
-/// </summary>
-public sealed record IfStmt(
-    Expr Condition,
-    IReadOnlyList<Stmt> ThenBody,
-    IReadOnlyList<ElifClause> ElifClauses,
-    IReadOnlyList<Stmt>? ElseBody,
-    SourceLocation Location
-) : Stmt(Location);
-
-public sealed record ElifClause(
-    Expr Condition,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// For loop (numeric).
-/// </summary>
-public sealed record ForStmt(
-    string Variable,
-    Expr From,
-    Expr To,
-    Expr? Step,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// For-In loop.
-/// </summary>
-public sealed record ForInStmt(
-    string Variable,
-    Expr Iterable,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// While loop.
-/// </summary>
-public sealed record WhileStmt(
-    Expr Condition,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Do-While loop.
-/// </summary>
-public sealed record DoWhileStmt(
-    IReadOnlyList<Stmt> Body,
-    Expr Condition,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Break statement.
-/// </summary>
-public sealed record BreakStmt(SourceLocation Location) : Stmt(Location);
-
-/// <summary>
-/// Continue statement.
-/// </summary>
-public sealed record ContinueStmt(SourceLocation Location) : Stmt(Location);
-
-/// <summary>
-/// Return statement.
-/// </summary>
-public sealed record ReturnStmt(
-    Expr? Value,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Try-Catch statement.
-/// </summary>
-public sealed record TryCatchStmt(
-    IReadOnlyList<Stmt> TryBody,
-    string ErrorVariable,
-    IReadOnlyList<Stmt> CatchBody,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Switch statement.
-/// </summary>
-public sealed record SwitchStmt(
-    Expr Value,
-    IReadOnlyList<SwitchCase> Cases,
-    IReadOnlyList<Stmt>? DefaultBody,
-    SourceLocation Location
-) : Stmt(Location);
-
-public sealed record SwitchCase(
-    IReadOnlyList<Expr> Values,
-    IReadOnlyList<Stmt> Body,
-    SourceLocation Location
-) : AstNode(Location);
-
-/// <summary>
-/// Clear statement.
-/// </summary>
-public sealed record ClearStmt(SourceLocation Location) : Stmt(Location);
-
-/// <summary>
-/// Base call statement.
-/// </summary>
-public sealed record BaseCallStmt(
-    IReadOnlyList<Expr> Args,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Global declaration.
-/// </summary>
-public sealed record GlobalDeclStmt(
-    string Name,
-    Expr Value,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Expression statement (standalone expression).
-/// </summary>
-public sealed record ExpressionStmt(
-    Expr Expression,
-    SourceLocation Location
-) : Stmt(Location);
-
-/// <summary>
-/// Block statement (for scopes).
-/// </summary>
-public sealed record BlockStmt(
-    IReadOnlyList<Stmt> Statements,
-    SourceLocation Location
-) : Stmt(Location);
-
-#endregion
+    public EventDecl(string name, IReadOnlyList<ParameterDecl> parameters, SourceLocation location)
+        : base(location)
+    {
+        Name = name;
+        Parameters = parameters;
+    }
+}
