@@ -11,24 +11,14 @@
     <AssemblyName>OsbEngineProbe</AssemblyName>
     <RootNamespace>Osb.Engine.Probe</RootNamespace>
 
-    <!-- Freestanding NativeAOT compilation against MiniCoreLib -->
-    <NoStdLib>true</NoStdLib>
-    <NoConfig>true</NoConfig>
-    <RuntimeMetadataVersion>v4.0.30319</RuntimeMetadataVersion>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- Official .NET NativeAOT runtime (Alternative D, M8.3.5) -->
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <DefineConstants>$(DefineConstants);TARGET_64BIT</DefineConstants>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
-    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <GenerateApphost>false</GenerateApphost>
-    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
-
-  <!-- Link all MiniCoreLib source files from osb.core (canonical copies) -->
-  <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)../../../osb.core/src/*.cs" Link="MiniCoreLib/%(FileName)%(Extension)" />
-  </ItemGroup>
 
   <!-- Link Engine.Core source files directly (not via project reference) -->
   <ItemGroup>
@@ -47,25 +37,5 @@
     <Compile Include="ProbeMain.cs" />
     <Compile Include="GlobalUsings.cs" />
   </ItemGroup>
-
-  <!-- Fail with a clear message when the sibling repo is missing -->
-  <Target Name="CheckSiblings" BeforeTargets="CoreCompile">
-    <Error Condition="!Exists('$(MSBuildThisFileDirectory)../../../osb.core/src/MiniCoreLib.cs')"
-           Text="osb.core sibling repo not found (expected ../../osb.core/src/MiniCoreLib.cs). Clone the OSB repos side by side; see README.md." />
-  </Target>
-
-  <!-- Remove every assembly reference the .NET SDK added (matches the zerosharp samples) -->
-  <Target Name="CustomizeReferences" BeforeTargets="BeforeCompile" AfterTargets="FindReferenceAssembliesForReferences">
-    <ItemGroup>
-      <ReferencePathWithRefAssemblies Remove="@(ReferencePathWithRefAssemblies)" />
-      <ReferencePath Remove="@(ReferencePath)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RemoveHostConfigurationOptions" BeforeTargets="WriteIlcRspFileForCompilation" DependsOnTargets="PrepareForILLink">
-    <ItemGroup>
-      <RuntimeHostConfigurationOption Remove="@(RuntimeHostConfigurationOption)" />
-    </ItemGroup>
-  </Target>
 
 </Project>
