@@ -21,12 +21,8 @@
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-
-    <!-- NativeAOT publishing -->
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <PublishTrimmed>true</PublishTrimmed>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateApphost>false</GenerateApphost>
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
   <!-- Link all MiniCoreLib source files from osb.core (canonical copies) -->
