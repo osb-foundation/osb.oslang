@@ -122,6 +122,47 @@ internal static class BigIntegerDivision
         return (Normalize(quotient), Normalize(remainder));
     }
 
+    // General single-word division using Knuth's Algorithm D
+    public static (ulong[] quotient, ulong remainder) DivModBySingleWord(ulong[] a, ulong divisor)
+    {
+        if (divisor == 0) throw new DivideByZeroException();
+        if (a.Length == 0) return (Array.Empty<ulong>(), 0);
+
+        // Fast path: divisor fits in 63 bits (no normalization needed)
+        if (divisor <= long.MaxValue)
+        {
+            var qFast = new ulong[a.Length];
+            ulong remFast = 0;
+            for (int i = a.Length - 1; i >= 0; i--)
+            {
+                (ulong qi, ulong ri) = BigIntegerOps.DivMod128(remFast, a[i], divisor);
+                qFast[i] = qi;
+                remFast = ri;
+            }
+            return (Normalize(qFast), remFast);
+        }
+
+        // General case: divisor uses full 64 bits, need normalization
+        // Normalize: shift divisor and dividend so divisor's high bit is 1
+        int shift = BigIntegerOps.LeadingZeroCount(divisor);
+        ulong d = divisor << shift;
+        
+        var qNorm = new ulong[a.Length];
+        ulong remNorm = 0;
+        
+        for (int i = a.Length - 1; i >= 0; i--)
+        {
+            ulong hi = (remNorm << shift) | (a[i] >> (64 - shift));
+            ulong lo = a[i] << shift;
+            
+            (ulong qi, ulong ri) = BigIntegerOps.DivMod128(hi, lo, d);
+            qNorm[i] = qi;
+            remNorm = ri >> shift;
+        }
+        
+        return (Normalize(qNorm), remNorm);
+    }
+
     // Division by 10 for ToString()
     public static (ulong[] quotient, ulong remainder) DivModByTen(ulong[] a)
     {

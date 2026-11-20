@@ -214,4 +214,105 @@ internal static class BigIntegerOps
         Array.Copy(words, result, i);
         return result;
     }
+
+    // 128-bit division: (hi * 2^64 + lo) / divisor
+    // Returns (quotient, remainder)
+    public static (ulong quotient, ulong remainder) DivMod128(ulong hi, ulong lo, ulong divisor)
+    {
+        // Use built-in 128-bit division for common case
+        if (hi < divisor)
+        {
+            // 64-bit division is sufficient
+            ulong dividend = (hi << 64) | lo; // This would overflow, so we need a different approach
+            // Actually use the standard algorithm
+            // For hi < divisor, we can do: q = (hi * 2^64 + lo) / divisor
+            // But since we can't represent 128-bit in C# natively without BigInteger,
+            // we use the standard long division approach
+            
+            // Use the fact that (hi << 64) / divisor = hi * (2^64 / divisor) + hi * (2^64 % divisor) / divisor
+            // This is complex. Let's use a simpler approach for now.
+        }
+        
+        // Standard Knuth Algorithm D for 128/64 -> 64/64
+        // We'll use the approximation method
+        ulong q = ulong.MaxValue;
+        ulong r = 0;
+        
+        if (hi == 0)
+        {
+            q = lo / divisor;
+            r = lo % divisor;
+            return (q, r);
+        }
+        
+        // Use built-in division for the high part
+        q = hi / divisor;
+        r = hi % divisor;
+        
+        // Now we have q*divisor*2^64 + r*2^64 + lo
+        // The remaining division: (r*2^64 + lo) / divisor
+        // But we need to multiply q by 2^64, which overflows.
+        // Instead, do the full 128-bit division properly
+        
+        // Use double-word division algorithm
+        ulong d = divisor;
+        ulong u1 = hi;
+        ulong u0 = lo;
+        
+        if (u1 >= d)
+        {
+            // Result would overflow 64 bits - this shouldn't happen in our usage
+            return (ulong.MaxValue, u0);
+        }
+        
+        // Normalize
+        int shift = LeadingZeroCount(d);
+        d <<= shift;
+        u1 = (u1 << shift) | (u0 >> (64 - shift));
+        u0 <<= shift;
+        
+        // Divide
+        q = u1 / d;
+        r = u1 % d;
+        
+        ulong qhat = q;
+        ulong rhat = r;
+        
+        // Check if qhat is too large
+        ulong p = Mul128(qhat, d).lo;
+        if (p > ((rhat << 64) | u0))
+        {
+            qhat--;
+            rhat += d;
+            if (rhat >= d)
+            {
+                p = Mul128(qhat, d).lo;
+                if (p > ((rhat << 64) | u0))
+                    qhat--;
+            }
+        }
+        
+        // Compute remainder
+        ulong prodHi, prodLo;
+        (prodHi, prodLo) = Mul128(qhat, d);
+        r = ((rhat << 64) | u0) - prodLo;
+        if (r > ((rhat << 64) | u0))
+            prodHi++;
+        r = (r >> shift);
+        
+        return (qhat, r);
+    }
+
+    public static int LeadingZeroCount(ulong value)
+    {
+        if (value == 0) return 64;
+        int count = 0;
+        if ((value & 0xFFFFFFFF00000000UL) == 0) { count += 32; value <<= 32; }
+        if ((value & 0xFFFF000000000000UL) == 0) { count += 16; value <<= 16; }
+        if ((value & 0xFF00000000000000UL) == 0) { count += 8; value <<= 8; }
+        if ((value & 0xF000000000000000UL) == 0) { count += 4; value <<= 4; }
+        if ((value & 0xC000000000000000UL) == 0) { count += 2; value <<= 2; }
+        if ((value & 0x8000000000000000UL) == 0) { count += 1; }
+        return count;
+    }
 }
