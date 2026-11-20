@@ -16,7 +16,7 @@ public static class ProbeMain
 {
     public static void Main()
     {
-        // Basic type smoke tests
+        // Basic Engine.Core type smoke tests
         var nl = new NodeList<int>();
         nl.Add(1);
         nl.Add(2);
@@ -46,5 +46,12 @@ public static class ProbeMain
         }
 
         System.Console.WriteLine("Probe: Engine.Core smoke test passed");
+
+        // NativeAOT runtime smoke tests (M8.3.6)
+        int rc = NativeRuntimeSmokeTests.RunAll();
+        if (rc != 0)
+        {
+            System.Environment.Exit(rc);
+        }
     }
 }

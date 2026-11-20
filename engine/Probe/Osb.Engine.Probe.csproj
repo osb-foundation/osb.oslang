@@ -35,6 +35,7 @@
   <!-- Probe entry point -->
   <ItemGroup>
     <Compile Include="ProbeMain.cs" />
+    <Compile Include="NativeRuntimeSmokeTests.cs" />
     <Compile Include="GlobalUsings.cs" />
   </ItemGroup>
 
