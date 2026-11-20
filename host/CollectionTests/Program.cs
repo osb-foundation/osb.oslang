@@ -35,6 +35,10 @@ internal static class Program
         ParserTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== DateTime Tests ===");
+        DateTimeTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }

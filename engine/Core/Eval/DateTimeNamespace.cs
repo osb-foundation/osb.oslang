@@ -58,8 +58,18 @@ public static class DateTimeNamespace
         var dt = time.CreateDate(year, month, day);
         if (!dt.HasValue) return Value.NullValue;
 
-        // Convert to days since epoch (simplified)
-        long daysSinceEpoch = new DateTimeOffset(dt.Value).ToUnixTimeSeconds() / 86400;
+        // Convert to days since Unix epoch (1970-01-01).
+        // .NET DateTime ticks are 100-nanosecond intervals since 0001-01-01.
+        // Unix epoch (1970-01-01) = 621355968000000000 ticks from 0001-01-01.
+        // Integer division truncates toward zero at each step, matching
+        // DateTimeOffset.ToUnixTimeSeconds() / 86400 semantics exactly.
+        const long UnixEpochTicks = 621355968000000000L;
+        const long TicksPerSecond = 10000000L;
+        const long SecondsPerDay = 86400L;
+
+        long ticks = dt.Value.Ticks;
+        long unixSeconds = (ticks - UnixEpochTicks) / TicksPerSecond;
+        long daysSinceEpoch = unixSeconds / SecondsPerDay;
         return Value.Number(daysSinceEpoch);
     }
 
