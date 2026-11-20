@@ -1,3 +1,4 @@
+using Osb.Engine.Core.Collections;
 using Osb.Engine.Core.Providers;
 
 namespace Osb.Engine.Core.Lang;
@@ -6,8 +7,9 @@ namespace Osb.Engine.Core.Lang;
 /// Lexical analyzer for OSLANG.
 /// Implements case-insensitive keywords (ASCII-only per SQ-002).
 /// Strings are UTF-8 encoded; code-point indexing handled at runtime (SQ-001).
+/// Uses freestanding collections (NodeList<T>, StringBuffer) instead of BCL collections.
 /// </summary>
-public sealed class Lexer
+public partial class Lexer
 {
     private readonly string _source;
     private readonly IUtf8Provider _utf8;
@@ -25,9 +27,9 @@ public sealed class Lexer
     /// <summary>
     /// Tokenizes the entire source into a list of tokens.
     /// </summary>
-    public List<Token> Tokenize()
+    public NodeList<Token> Tokenize()
     {
-        var tokens = new List<Token>();
+        var tokens = new NodeList<Token>();
         while (!IsAtEnd)
         {
             tokens.Add(NextToken());
@@ -141,7 +143,7 @@ public sealed class Lexer
 
     private Token ReadIdentifierOrKeyword(SourceLocation start)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuffer();
         sb.Append(_source[_pos - 1]); // first char already consumed
 
         while (!IsAtEnd && IsIdentifierPart(Current))
@@ -150,7 +152,7 @@ public sealed class Lexer
         }
 
         var text = sb.ToString();
-        var upper = text.ToUpperInvariant(); // ASCII-only per SQ-002
+        var upper = ToUpperInvariant(text); // ASCII-only per SQ-002
 
         return Keywords.TryGetKeyword(upper, out var keywordType)
             ? new Token(keywordType, text, start)
@@ -159,7 +161,7 @@ public sealed class Lexer
 
     private Token ReadNumber(SourceLocation start)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuffer();
         sb.Append(_source[_pos - 1]);
 
         bool hasDot = false;
@@ -183,14 +185,14 @@ public sealed class Lexer
         }
 
         var text = sb.ToString();
-        double value = double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+        double value = ParseDouble(text);
         return new Token(TokenType.NumberLiteral, text, start, numberValue: value);
     }
 
     private Token ReadString(SourceLocation start)
     {
-        var sb = new System.Text.StringBuilder();
-        var raw = new System.Text.StringBuilder();
+        var sb = new StringBuffer();
+        var raw = new StringBuffer();
         raw.Append('"');
 
         while (!IsAtEnd)
@@ -239,7 +241,7 @@ public sealed class Lexer
 
     private Token ReadDateOrTime(SourceLocation start)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuffer();
         sb.Append('#');
 
         while (!IsAtEnd && Current != '#')

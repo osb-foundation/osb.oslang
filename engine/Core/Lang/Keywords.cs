@@ -1,98 +1,104 @@
+using Osb.Engine.Core.Collections;
+
 namespace Osb.Engine.Core.Lang;
 
 /// <summary>
 /// Keyword lookup table for the lexer.
 /// All keywords are stored in uppercase for case-insensitive matching (ASCII-only per SQ-002).
+/// Uses freestanding StringMap instead of BCL Dictionary.
 /// </summary>
 internal static class Keywords
 {
-    private static readonly Dictionary<string, TokenType> Map = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly StringMap<TokenType> Map;
+
+    static Keywords()
     {
+        Map = new StringMap<TokenType>();
         // Core keywords (OSLANG 0.1+)
-        ["AND"] = TokenType.And,
-        ["BASE"] = TokenType.Base,
-        ["BOOLEAN"] = TokenType.Boolean,
-        ["BOOL"] = TokenType.Bool,
-        ["BREAK"] = TokenType.Break,
-        ["CATCH"] = TokenType.Catch,
-        ["CEIL"] = TokenType.Ceil,
-        ["CLASS"] = TokenType.Class,
-        ["CLEAR"] = TokenType.Clear,
-        ["CONSTRUCTOR"] = TokenType.Constructor,
-        ["CONTINUE"] = TokenType.Continue,
-        ["COUNT"] = TokenType.Count,
-        ["DO"] = TokenType.Do,
-        ["ELIF"] = TokenType.Elif,
-        ["ELSE"] = TokenType.Else,
-        ["END"] = TokenType.End,
-        ["FALSE"] = TokenType.False,
-        ["FLOOR"] = TokenType.Floor,
-        ["FOR"] = TokenType.For,
-        ["FUNCTION"] = TokenType.Function,
-        ["GLOBAL"] = TokenType.Global,
-        ["IF"] = TokenType.If,
-        ["INPUT"] = TokenType.Input,
-        ["INTERFACE"] = TokenType.Interface,
-        ["ME"] = TokenType.Me,
-        ["NEW"] = TokenType.New,
-        ["NOT"] = TokenType.Not,
-        ["NULL"] = TokenType.Null,
-        ["NUMBER"] = TokenType.Number,
-        ["OR"] = TokenType.Or,
-        ["POW"] = TokenType.Pow,
-        ["PRINT"] = TokenType.Print,
-        ["PRIVATE"] = TokenType.Private,
-        ["PROTECTED"] = TokenType.Protected,
-        ["PUBLIC"] = TokenType.Public,
-        ["RETURN"] = TokenType.Return,
-        ["SQRT"] = TokenType.Sqrt,
-        ["STEP"] = TokenType.Step,
-        ["STRING"] = TokenType.String,
-        ["STR"] = TokenType.Str,
-        ["THEN"] = TokenType.Then,
-        ["TO"] = TokenType.To,
-        ["TRUE"] = TokenType.True,
-        ["TRY"] = TokenType.Try,
-        ["TYPEOF"] = TokenType.TypeOf,
-        ["VAR"] = TokenType.Var,
-        ["WHILE"] = TokenType.While,
+        Map.Add("AND", TokenType.And);
+        Map.Add("BASE", TokenType.Base);
+        Map.Add("BOOLEAN", TokenType.Boolean);
+        Map.Add("BOOL", TokenType.Bool);
+        Map.Add("BREAK", TokenType.Break);
+        Map.Add("CATCH", TokenType.Catch);
+        Map.Add("CEIL", TokenType.Ceil);
+        Map.Add("CLASS", TokenType.Class);
+        Map.Add("CLEAR", TokenType.Clear);
+        Map.Add("CONSTRUCTOR", TokenType.Constructor);
+        Map.Add("CONTINUE", TokenType.Continue);
+        Map.Add("COUNT", TokenType.Count);
+        Map.Add("DO", TokenType.Do);
+        Map.Add("ELIF", TokenType.Elif);
+        Map.Add("ELSE", TokenType.Else);
+        Map.Add("END", TokenType.End);
+        Map.Add("FALSE", TokenType.False);
+        Map.Add("FLOOR", TokenType.Floor);
+        Map.Add("FOR", TokenType.For);
+        Map.Add("FUNCTION", TokenType.Function);
+        Map.Add("GLOBAL", TokenType.Global);
+        Map.Add("IF", TokenType.If);
+        Map.Add("INPUT", TokenType.Input);
+        Map.Add("INTERFACE", TokenType.Interface);
+        Map.Add("ME", TokenType.Me);
+        Map.Add("NEW", TokenType.New);
+        Map.Add("NOT", TokenType.Not);
+        Map.Add("NULL", TokenType.Null);
+        Map.Add("NUMBER", TokenType.Number);
+        Map.Add("OR", TokenType.Or);
+        Map.Add("POW", TokenType.Pow);
+        Map.Add("PRINT", TokenType.Print);
+        Map.Add("PRIVATE", TokenType.Private);
+        Map.Add("PROTECTED", TokenType.Protected);
+        Map.Add("PUBLIC", TokenType.Public);
+        Map.Add("RETURN", TokenType.Return);
+        Map.Add("SQRT", TokenType.Sqrt);
+        Map.Add("STEP", TokenType.Step);
+        Map.Add("STRING", TokenType.String);
+        Map.Add("STR", TokenType.Str);
+        Map.Add("THEN", TokenType.Then);
+        Map.Add("TO", TokenType.To);
+        Map.Add("TRUE", TokenType.True);
+        Map.Add("TRY", TokenType.Try);
+        Map.Add("TYPEOF", TokenType.TypeOf);
+        Map.Add("VAR", TokenType.Var);
+        Map.Add("WHILE", TokenType.While);
 
         // OSLANG 0.3
-        ["SWITCH"] = TokenType.Switch,
-        ["CASE"] = TokenType.Case,
-        ["DEFAULT"] = TokenType.Default,
-        ["VIRTUAL"] = TokenType.Virtual,
-        ["OVERRIDE"] = TokenType.Override,
-        ["EVENT"] = TokenType.Event,
-        ["ON"] = TokenType.On,
-        ["RAISE"] = TokenType.Raise,
-        ["USING"] = TokenType.Using,
+        Map.Add("SWITCH", TokenType.Switch);
+        Map.Add("CASE", TokenType.Case);
+        Map.Add("DEFAULT", TokenType.Default);
+        Map.Add("VIRTUAL", TokenType.Virtual);
+        Map.Add("OVERRIDE", TokenType.Override);
+        Map.Add("EVENT", TokenType.Event);
+        Map.Add("ON", TokenType.On);
+        Map.Add("RAISE", TokenType.Raise);
+        Map.Add("USING", TokenType.Using);
 
         // OSLANG 0.4
-        ["MATH"] = TokenType.Math,
-        ["FILE"] = TokenType.File,
-        ["DIR"] = TokenType.Dir,
+        Map.Add("MATH", TokenType.Math);
+        Map.Add("FILE", TokenType.File);
+        Map.Add("DIR", TokenType.Dir);
 
         // OSLANG 0.5
-        ["DATE"] = TokenType.Date,
-        ["TIME"] = TokenType.Time,
+        Map.Add("DATE", TokenType.Date);
+        Map.Add("TIME", TokenType.Time);
 
         // OSLANG 0.6
-        ["SHOW"] = TokenType.Show,
-        ["MOD"] = TokenType.Mod,
+        Map.Add("SHOW", TokenType.Show);
+        Map.Add("MOD", TokenType.Mod);
 
         // OSLANG 0.6 - Standard Library namespace
-        ["OSL"] = TokenType.Osl,
+        Map.Add("OSL", TokenType.Osl);
 
         // OSLANG 0.61
-        ["ENUM"] = TokenType.Enum,
+        Map.Add("ENUM", TokenType.Enum);
         // OSLANG 0.62
-        ["IN"] = TokenType.In,
-        ["EACH"] = TokenType.Each,
+        Map.Add("IN", TokenType.In);
+        Map.Add("EACH", TokenType.Each);
 
         // OSLANG 0.62
-        ["OSB"] = TokenType.Osb,
-    };
+        Map.Add("OSB", TokenType.Osb);
+    }
 
     /// <summary>
     /// Attempts to look up a keyword. Uses ASCII-only case-insensitive comparison (SQ-002).

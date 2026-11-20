@@ -27,6 +27,10 @@ internal static class Program
         GcTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Lexer Tests ===");
+        LexerTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }
