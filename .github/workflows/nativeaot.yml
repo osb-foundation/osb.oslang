@@ -1,0 +1,46 @@
+name: NativeAOT Build
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends binutils file
+
+      - name: Restore dependencies
+        run: dotnet restore osb.oslang/engine/Osb.Engine.NativeAOT.csproj
+
+      - name: Publish NativeAOT executable
+        run: dotnet publish -c Release -r linux-x64 osb.oslang/engine/Osb.Engine.NativeAOT.csproj -v q -nologo
+
+      - name: Verify ELF artifact
+        run: |
+          EXE=osb.oslang/engine/bin/Release/net10.0/linux-x64/publish/OsbEngineNativeAot
+          test -f "$EXE" || { echo "ERROR: $EXE not produced"; exit 1; }
+          file "$EXE" | grep -qi "ELF" || { echo "ERROR: not an ELF"; exit 1; }
+          file "$EXE" | grep -qi "x86-64" || { echo "ERROR: not x86-64"; exit 1;}
+
+      - name: Execute artifact
+        run: osb.oslang/engine/bin/Release/net10.0/linux-x64/publish/OsbEngineNativeAot
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OsbEngineNativeAot
+          path: osb.oslang/engine/bin/Release/net10.0/linux-x64/publish/OsbEngineNativeAot
