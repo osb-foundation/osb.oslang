@@ -53,5 +53,12 @@ public static class ProbeMain
         {
             System.Environment.Exit(rc);
         }
+
+        // NativeAOT GC architecture experiments (M8.4a)
+        int gcRc = NativeGCTests.RunAll();
+        if (gcRc != 0)
+        {
+            System.Environment.Exit(gcRc);
+        }
     }
 }

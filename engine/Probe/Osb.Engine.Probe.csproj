@@ -36,6 +36,7 @@
   <ItemGroup>
     <Compile Include="ProbeMain.cs" />
     <Compile Include="NativeRuntimeSmokeTests.cs" />
+    <Compile Include="NativeGCTests.cs" />
     <Compile Include="GlobalUsings.cs" />
   </ItemGroup>
 

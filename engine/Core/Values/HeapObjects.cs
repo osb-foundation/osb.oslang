@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace Osb.Engine.Core.Values;
 
 using Osb.Engine.Core.Collections;
@@ -191,7 +192,7 @@ public sealed class HeapClass : HeapObject
         BaseClass = baseClass;
         FieldNames = fieldNames;
         Methods = methods;
-        FieldCount = fieldNames.Length + (baseClass?.FieldCount ?? 0);
+        FieldCount = fieldNames.Length + (baseClass == null ? 0 : baseClass.FieldCount);
     }
 
     public Lang.MethodDecl? FindMethod(string name)
@@ -201,7 +202,7 @@ public sealed class HeapClass : HeapObject
             if (Methods[i].Name.Equals(name, System.StringComparison.OrdinalIgnoreCase))
                 return Methods[i];
         }
-        return BaseClass?.FindMethod(name);
+        return BaseClass == null ? null : BaseClass.FindMethod(name);
     }
 }
 

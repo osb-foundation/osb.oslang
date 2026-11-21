@@ -93,7 +93,7 @@ public readonly partial struct Value
         {
             HeapObjectInstance inst => $"OBJECT:{inst.ClassName}",
             HeapClass cls => $"CLASS:{cls.Name}",
-            _ => $"OBJECT:{AsObject?.GetType().Name ?? "NULL"}",
+            _ => AsObject == null ? "OBJECT:NULL" : $"OBJECT:{AsObject.GetType().Name ?? "NULL"}",
         },
         ValueKind.Enum => $"ENUM#{AsEnum.TypeIndex}.{AsEnum.MemberIndex}",
         ValueKind.EnumSet => $"ENUMSET[{AsEnumSet.Count}]",

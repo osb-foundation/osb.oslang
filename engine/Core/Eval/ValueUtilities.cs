@@ -48,7 +48,7 @@ internal static class ValueUtilities
         {
             HeapObjectInstance inst => inst.ClassName,
             HeapClass cls => cls.Name,
-            _ => value.AsObject?.GetType().Name ?? "NULL",
+            _ => value.AsObject == null ? "NULL" : value.AsObject.GetType().Name ?? "NULL",
         },
         ValueKind.Enum => FormatEnum(interpreter, value),
         ValueKind.EnumSet => $"ENUMSET[{value.AsEnumSet.Count}]",
