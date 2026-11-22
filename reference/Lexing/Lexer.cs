@@ -1,4 +1,5 @@
 using System.Text;
+using System;
 using Osb.Lang.Diagnostics;
 
 namespace Osb.Lang.Lexing;
@@ -32,6 +33,8 @@ namespace Osb.Lang.Lexing;
 /// </summary>
 public sealed class Lexer
 {
+    public static Action<string> DebugLog;
+    
     private readonly string _source;
     private int _pos;
     private int _line = 1;
@@ -41,9 +44,11 @@ public sealed class Lexer
 
     public Lexer(string source, int lineOffset = 0, int columnOffset = 0)
     {
+        DebugLog?.Invoke("Lexer constructor: start");
         _source = source;
         _lineOffset = lineOffset;
         _columnOffset = columnOffset;
+        DebugLog?.Invoke("Lexer constructor: done");
     }
 
     /// <summary>Lexa o código-fonte inteiro e retorna a lista de tokens, terminada por um token Eof.</summary>
@@ -59,6 +64,8 @@ public sealed class Lexer
 
         return tokens;
     }
+
+    public Token NextTokenPublic() => NextToken();
 
     private bool IsAtEnd => _pos >= _source.Length;
 
@@ -87,33 +94,40 @@ public sealed class Lexer
 
     private Token NextToken()
     {
+        DebugLog?.Invoke("NextToken: SkipWhitespaceAndComments");
         SkipWhitespaceAndComments();
 
         if (IsAtEnd)
         {
+            DebugLog?.Invoke("NextToken: IsAtEnd, returning Eof");
             return new Token(TokenType.Eof, string.Empty, CurrentLocation);
         }
 
         var start = CurrentLocation;
         var c = Current;
+        DebugLog?.Invoke("NextToken: c = '" + c + "'");
 
         if (c == '\r' || c == '\n')
         {
+            DebugLog?.Invoke("NextToken: newline");
             return ReadNewline();
         }
 
         if (char.IsDigit(c))
         {
+            DebugLog?.Invoke("NextToken: digit, ReadNumber");
             return ReadNumber();
         }
 
         if (c == '#')
         {
+            DebugLog?.Invoke("NextToken: #, ReadDateTimeLiteral");
             return ReadDateTimeLiteral();
         }
 
         if (c == '"')
         {
+            DebugLog?.Invoke("NextToken: quote, ReadString");
             if (Peek() == '"' && Peek(2) == '"')
             {
                 return ReadTripleString();
@@ -123,9 +137,11 @@ public sealed class Lexer
 
         if (IsIdentifierStart(c))
         {
+            DebugLog?.Invoke("NextToken: identifier start, ReadIdentifierOrKeywordOrRemComment");
             return ReadIdentifierOrKeywordOrRemComment();
         }
 
+        DebugLog?.Invoke("NextToken: operator/punctuation");
         return ReadOperatorOrPunctuation(start);
     }
 
@@ -135,18 +151,22 @@ public sealed class Lexer
     /// </summary>
     private void SkipWhitespaceAndComments()
     {
+        DebugLog?.Invoke("SkipWhitespaceAndComments: start");
         while (!IsAtEnd)
         {
             var c = Current;
+            DebugLog?.Invoke("SkipWhitespaceAndComments: c = '" + c + "'");
 
             if (c == ' ' || c == '\t')
             {
+                DebugLog?.Invoke("SkipWhitespaceAndComments: space/tab, Advance");
                 Advance();
                 continue;
             }
 
             if (c == '\'')
             {
+                DebugLog?.Invoke("SkipWhitespaceAndComments: single quote, SkipToEndOfLine");
                 SkipToEndOfLine();
                 continue;
             }
@@ -155,12 +175,14 @@ public sealed class Lexer
             // isolada (não como prefixo de um identificador maior, ex. "REMOTE").
             if ((c == 'r' || c == 'R') && IsRemKeywordAhead())
             {
+                DebugLog?.Invoke("SkipWhitespaceAndComments: REM, SkipToEndOfLine");
                 SkipToEndOfLine();
                 continue;
             }
 
             break;
         }
+        DebugLog?.Invoke("SkipWhitespaceAndComments: done");
     }
 
     private bool IsRemKeywordAhead()
@@ -184,6 +206,7 @@ public sealed class Lexer
 
     private Token ReadNewline()
     {
+        DebugLog?.Invoke("ReadNewline: start");
         var start = CurrentLocation;
         var c = Advance();
         if (c == '\r' && Current == '\n')
@@ -191,6 +214,7 @@ public sealed class Lexer
             Advance();
         }
 
+        DebugLog?.Invoke("ReadNewline: done");
         return new Token(TokenType.Newline, "\n", start);
     }
 
@@ -200,6 +224,7 @@ public sealed class Lexer
 
     private Token ReadIdentifierOrKeywordOrRemComment()
     {
+        DebugLog?.Invoke("ReadIdentifierOrKeywordOrRemComment: start");
         var start = CurrentLocation;
         var sb = new StringBuilder();
 
@@ -208,9 +233,12 @@ public sealed class Lexer
             sb.Append(Advance());
         }
 
+        DebugLog?.Invoke("ReadIdentifierOrKeywordOrRemComment: sb.ToString()");
         var text = sb.ToString();
+        DebugLog?.Invoke("ReadIdentifierOrKeywordOrRemComment: text.ToUpperInvariant()");
         var upper = text.ToUpperInvariant();
 
+        DebugLog?.Invoke("ReadIdentifierOrKeywordOrRemComment: Keywords.TryGetKeyword");
         return Keywords.TryGetKeyword(upper, out var keywordType)
             ? new Token(keywordType, text, start)
             : new Token(TokenType.Identifier, text, start);
