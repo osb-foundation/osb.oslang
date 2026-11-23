@@ -6,7 +6,7 @@ namespace Osb.Engine.Core.Providers;
 /// The platform supplies a memory region or allocation primitives.
 /// The Core never directly allocates managed arrays for heap storage.
 /// </summary>
-public interface IMemoryProvider
+public interface IMemoryProvider : IDisposable
 {
     /// <summary>
     /// Gets the base address of the memory region.

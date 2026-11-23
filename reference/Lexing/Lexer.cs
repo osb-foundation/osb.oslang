@@ -100,7 +100,7 @@ public sealed class Lexer
         if (IsAtEnd)
         {
             DebugLog?.Invoke("NextToken: IsAtEnd, returning Eof");
-            return new Token(TokenType.Eof, string.Empty, CurrentLocation);
+            return new Token(TokenType.Eof, "", CurrentLocation);
         }
 
         var start = CurrentLocation;
@@ -552,7 +552,11 @@ public sealed class Lexer
                     Advance();
                     return new Token(TokenType.DoubleArrow, "=>", start);
                 }
-
+                if (Current == '=')
+                {
+                    Advance();
+                    return new Token(TokenType.Equal, "==", start);
+                }
                 return new Token(TokenType.Equal, "=", start);
             case '<':
                 if (Current == '>')
