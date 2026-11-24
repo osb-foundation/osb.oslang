@@ -22,7 +22,7 @@ OSLANG is the scripting language for OSB (Operating System Basic), a DOS-like op
 
 ## Language versions
 
-- **Current:** OSLANG 0.73
+- **Current:** OSLANG 0.8
 - **Previous:** 0.72, 0.7, 0.62, 0.61, 0.6, 0.51, 0.5, 0.4, 0.3, 0.2, 0.1
 
 ## Status (2026-11-19, phase O0)

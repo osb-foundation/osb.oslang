@@ -1,7 +1,7 @@
 # OSLANG — Unified Specification
 
 **Status:** canonical language reference (single source of truth)
-**Latest specification version:** 0.73
+**Latest specification version:** 0.8
 **Reference implementation:** `reference/Osb.Lang` (`OslangInterpreter`, currently 0.72)
 **Bare-metal port:** archived at `archive/kernel-port/OslangKernel.cs` (subset, see [OSLANG-GAP.md](OSLANG-GAP.md))
 
@@ -52,6 +52,7 @@ This rule is restated as the closing constraint of both 0.72 and 0.73.
 | 0.7 | Full-screen interactive terminal applications (`OSL.CONSOLE`, `OSL.APP`) | additive | [OSLANG-0.7-SPEC.md](OSLANG-0.7-SPEC.md) |
 | 0.72 | Ergonomic object model (implicit `ME`), typed keyboard events, enum flags | **breaking** | [OSLANG-0.72-SPEC.md](OSLANG-0.72-SPEC.md) |
 | 0.73 | Fix the identifier/enum/assignment problems 0.72 introduced | **breaking** | [OSLANG-0.73-SPEC.md](OSLANG-0.73-SPEC.md) |
+| 0.8 | Formalize language-level object identity, equality, closure semantics, and object lifetime | **breaking** | [OSLANG-0.8-SPEC.md](OSLANG-0.8-SPEC.md) |
 
 Two versions are referenced by later specs but have no spec file in this folder:
 **0.41** (source of `ARGS`, cited by 0.5/0.51) and **0.63/0.64** (roadmap placeholders in
@@ -82,6 +83,9 @@ Two versions are referenced by later specs but have no spec file in this folder:
   enum combination with `|`.
 - **0.73** — `KEY` renamed to `KEYCODE`, enum types in a dedicated registry, assignment that
   respects local/parameter shadowing, legacy console constants returning enum values.
+- **0.8** — Formalize language-level object identity, equality, closure semantics, and object
+  lifetime. Closure equality becomes identity-based (reflexive). Allocation failure remains
+  unresolved.
 
 ---
 
@@ -203,6 +207,8 @@ Precedence, highest first (0.51 pins the relative order of the 0.51 additions):
 - `=>` introduces an arrow function (0.51): `X => X * 2`, `(A, B) => A + B`,
   `X => … END` for a block body. Arrow functions capture their enclosing scope (closures).
 - Method chaining works on any expression returning a value: `"abc".TOUPPER().TRIM()`.
+- `=` and `<>` are equality comparison (not assignment in expression context); equality
+  semantics follow §17 (identity vs. value equality by value category).
 - A named function is a first-class value and can be passed as the callback argument of
   collection methods (0.4) — anonymous functions were explicitly out of scope.
 
@@ -489,6 +495,46 @@ verbs/auth/cookies (0.62 roadmap), strict i18n missing-key mode, timezone-aware 
 mouse and clipboard support (`OSL.CONSOLE` extensions).
 
 ---
+
+## 17. Object identity, equality, and lifetime
+
+- Managed objects are arrays, class instances, closures, and enum sets. Strings, enums,
+  numbers, booleans, and `NULL` are values without independent identity; key events are
+  special opaque values (see §3).
+- Managed objects have logical identity independent of their physical representation.
+  The specification defines observable identity semantics only; it does not prescribe
+  pointers, offsets, handles, memory layout, allocation strategy, or garbage collection.
+- Assignment and parameter passing preserve object identity for managed objects. Mutations
+  are observable through aliases.
+- Equality semantics:
+  - `NULL`: equal only to `NULL`.
+  - `BOOLEAN`, `NUMBER`: value equality.
+  - `STRING`: content equality.
+  - `ENUM`: equal when the enum type and member match.
+  - `ARRAY`, class instance, `ENUMSET`, closure: object identity equality.
+  - Key event: preserved special-value equality behavior; not classified as a managed
+    language object.
+- Closure equality is by identity (intentional semantic change): a closure equals itself;
+  two distinct closures are unequal even with identical bodies and captures. Reflexive.
+  Previous behavior compared closures as always unequal, including a closure with itself.
+  Current implementations do not yet implement this behavior; implementation work is
+  required later.
+- Closure capture: captured primitive values are copied into the closure environment;
+  captured object references preserve reference identity and alias the same object.
+  Multiple closures share an environment only when given the same capture array. Captured
+  values remain usable after the original scope exits. Recursive function declarations
+  are supported. This does not imply closures created in the same lexical scope share a
+  mutable environment.
+- Object lifetime: objects referenced by reachable language values must remain valid.
+  Unreachable objects may be reclaimed at implementation-defined times. No deterministic
+  reclamation is promised. No finalizers, destructors, weak references, or explicit
+  disposal semantics are introduced. No particular collector, allocator, or reclamation
+  strategy is prescribed.
+- Allocation failure: contract unresolved and deferred. No catchable out-of-memory
+  guarantee, no new `CATCH` behavior, and no promise of recoverability is defined.
+  Engine heap allocation failure is not currently represented as a recoverable
+  language-level condition; this implementation limitation is not made a permanent
+  guarantee.
 
 ## 16. Spec drift and open questions
 

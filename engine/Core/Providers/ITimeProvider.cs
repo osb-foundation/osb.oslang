@@ -1,5 +1,6 @@
 using System;
-using Osb.Engine.Core.Providers;
+
+namespace Osb.Engine.Core.Providers;
 
 /// <summary>
 /// Time provider. Implemented by hosted BCL or freestanding platform.
