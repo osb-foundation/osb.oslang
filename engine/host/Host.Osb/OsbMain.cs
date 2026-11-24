@@ -298,16 +298,14 @@ internal static unsafe class OsbMain
 
     private static string ParseScriptPath(string args)
     {
-        // Skip the program name (first token)
+        // The kernel passes "<sourcePath> <appArgs>" (see osb.shell External.SpawnOslang):
+        // the first token is the script source path, the remainder is the app's ARGS.
+        // (An earlier version skipped the first token as a program name, which broke the
+        // single-token "<script>" form the shell actually passes.)
         int i = 0;
         while (i < args.Length && args[i] == ' ') i++;
-        while (i < args.Length && args[i] != ' ') i++; // skip program name
-        while (i < args.Length && args[i] == ' ') i++; // skip spaces
-        
-        // Find end of script path
         int start = i;
         while (i < args.Length && args[i] != ' ' && args[i] != '\r' && args[i] != '\n') i++;
-        
         if (start >= i) return null;
         return args.Substring(start, i - start);
     }

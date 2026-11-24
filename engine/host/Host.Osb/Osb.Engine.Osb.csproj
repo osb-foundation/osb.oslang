@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="OsbMain.cs" />
     <Compile Include="GlobalUsings.cs" />
+    <Compile Include="OsbRuntimeExports.cs" />
   </ItemGroup>
 
   <Target Name="CheckSiblings" BeforeTargets="CoreCompile">
