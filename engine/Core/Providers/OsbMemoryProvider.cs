@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace Osb.Engine.Core.Providers;
 
@@ -9,6 +10,8 @@ namespace Osb.Engine.Core.Providers;
 /// </summary>
 public sealed class OsbMemoryProvider : IMemoryProvider
 {
+    [DllImport("osbnative")] private static extern ulong osb_tls_get_alloc();
+    [DllImport("osbnative")] private static extern void osb_tls_set_alloc(ulong v);
     private readonly int _regionSize;
     private int _bumpPtr;
     private int _memGrowFrames;
@@ -68,8 +71,16 @@ public sealed class OsbMemoryProvider : IMemoryProvider
         if (alignment <= 0 || (alignment & (alignment - 1)) != 0)
             throw new ArgumentException("Alignment must be a power of two", nameof(alignment));
 
+        // Sync bump pointer with the shared TLS allocation arena so that
+        // managed allocations (RhNewString/RhpNewFast) and provider
+        // allocations share one contiguous region without overlap.
+        ulong tlsAlloc = osb_tls_get_alloc();
+        ulong baseAddr = (ulong)BaseAddress;
+        int current = (int)(tlsAlloc - baseAddr);
+        if (current < 0 || current > _regionSize) current = _bumpPtr;
+
         // Align current pointer
-        int alignedPtr = (_bumpPtr + alignment - 1) & ~(alignment - 1);
+        int alignedPtr = (current + alignment - 1) & ~(alignment - 1);
         int newPtr = alignedPtr + sizeBytes;
 
         if (newPtr > _regionSize)
@@ -79,6 +90,7 @@ public sealed class OsbMemoryProvider : IMemoryProvider
 
         IntPtr result = BaseAddress + alignedPtr;
         _bumpPtr = newPtr;
+        osb_tls_set_alloc(baseAddr + (ulong)newPtr);
         return result;
     }
 
