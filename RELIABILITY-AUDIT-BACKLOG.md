@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `e80d676` (HEAD; Batch 3 applied)  
+**Commit:** `7d620a5` (HEAD; Batches 1-3 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
