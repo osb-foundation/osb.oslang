@@ -131,7 +131,10 @@ public sealed class Interpreter
         var retVal = _ctx.ReturnValue;
         _ctx.ReturnValue = Value.NullValue;
         _ctx.PopFrame();
-        _ctx.CurrentFlow = ControlFlow.Normal;
+        // Preserve a pending exception so the caller's control-flow guard propagates it.
+        // Only normalize Return/Break/Continue/Normal; never swallow an Exception.
+        if (_ctx.CurrentFlow != ControlFlow.Exception)
+            _ctx.CurrentFlow = ControlFlow.Normal;
 
         return retVal;
     }
@@ -165,10 +168,32 @@ public sealed class Interpreter
         var retVal = _ctx.ReturnValue;
         _ctx.ReturnValue = Value.NullValue;
         _ctx.PopFrame();
-        _ctx.CurrentFlow = ControlFlow.Normal;
+        if (_ctx.CurrentFlow != ControlFlow.Exception)
+            _ctx.CurrentFlow = ControlFlow.Normal;
 
         return retVal;
     }
+
+    /// <summary>
+    /// Current interpreter control-flow state. Exception indicates a runtime error
+    /// is pending and has not been consumed by a TRY/CATCH.
+    /// </summary>
+    public ControlFlow CurrentFlow => _ctx.CurrentFlow;
+
+    /// <summary>
+    /// The pending exception value, or NullValue when none is pending.
+    /// </summary>
+    public Value CurrentException => _ctx.CurrentException;
+
+    /// <summary>
+    /// The pending exception message, or null when none is pending.
+    /// </summary>
+    public string? CurrentExceptionMessage => _ctx.CurrentExceptionMessage;
+
+    /// <summary>
+    /// The source location of the pending exception, or Unknown when none is pending.
+    /// </summary>
+    public SourceLocation ExceptionLocation => _ctx.ExceptionLocation;
 
     internal Value Evaluate(Lang.Expr expr) => _expressions.Evaluate(expr);
 

@@ -39,6 +39,10 @@ internal static class Program
         DateTimeTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Interpreter / Error Propagation Tests ===");
+        InterpreterTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }
