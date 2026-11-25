@@ -1,9 +1,10 @@
 {
   "schema": "osb.version.v1",
   "component": "osb.oslang",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "generation": 0,
   "release": false,
+  "codename": "Olorun",
   "description": "OSLANG language implementation: lexer, parser, compiler, runtime and specs. Language spec versions (OSLANG 0.1-0.8) are tracked separately in OSLANG-*-SPEC.md.",
   "repository": "osb-foundation/osb.oslang"
 }
