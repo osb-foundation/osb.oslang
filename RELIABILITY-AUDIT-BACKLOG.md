@@ -18,7 +18,7 @@ Severity: CRITICAL > HIGH > MEDIUM > LOW.
 Confidence: CONFIRMED (code trace / test), LIKELY (strong code evidence),
 LATENT (defect present but code path not exercised).
 
-"Fixes implemented" below reflect Batches 1-4. Remaining items are the
+"Fixes implemented" below reflect Batches 1-5. Remaining items are the
 recommended backlog for subsequent sessions.
 
 ---
