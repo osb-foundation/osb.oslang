@@ -333,7 +333,7 @@ See the detailed entry in the prioritized backlog below.
 - **Result:** 871/871 CollectionTests pass (868 pre-existing + 3 new R8 assertions).
 - **Confidence:** CONFIRMED.
 
-### R9 — Top-level error not surfaced to user — MEDIUM — LIKELY
+### R9 — Top-level error not surfaced to user — MEDIUM — LIKELY — FIXED
 
 - **Area:** Error propagation / host boundary.
 - **Evidence:** `OsbMain.cs` calls `interpreter.Execute(program)` but never checks
@@ -342,14 +342,20 @@ See the detailed entry in the prioritized backlog below.
   carries the pre-existing O8.15 probe block which must be preserved untouched.)
 - **Root cause:** Host entry point does not observe interpreter error state.
 - **Impact:** Runtime failures exit silently with code 0; no diagnostic.
-- **Recommended fix:** After `interpreter.Execute(program)`, if
-  `CurrentFlow == Exception`, print `CurrentExceptionMessage` and `Exit(1)`.
-- **Dependencies:** R1 (public getters now exist).
-- **Regression test:** Host-level: run a program with no MAIN / division by zero,
-  verify non-zero exit and error message printed.
-- **Confidence:** LIKELY (code inspection; not yet tested at host level).
-- **Note:** This is Batch 2 candidate; do not touch OsbMain.cs until the pre-existing
-  probe changes can be cleanly separated.
+- **Fix:** After `interpreter.Execute(program)` in `OsbMain.cs`, added a check for
+  `interpreter.CurrentFlow == ControlFlow.Exception`. If true, prints
+  `CurrentExceptionMessage` and exits with code 1. This mirrors the existing
+  C# exception catch block but handles the soft-throw `ControlFlow.Exception` path.
+- **Dependencies:** R1 (public getters `CurrentFlow`, `CurrentExceptionMessage` exist).
+- **Regression test:** `host/CollectionTests/HostErrorSurfacingTests.cs` — 5 tests:
+  - `HostSurfacesRuntimeErrorAfterExecute` — verifies division by zero produces `ControlFlow.Exception` with message after `Execute()`.
+  - `HostSurfacesNoMainError` — verifies missing MAIN produces `ControlFlow.Exception` with "No MAIN function found".
+  - `HostSurfacesDivisionByZeroError` — verifies division by zero error message.
+  - `HostSurfacesUnknownFunctionError` — verifies unknown function error.
+  - `HostNormalExecutionFlowIsNormal` — verifies successful execution leaves flow as `Normal`.
+- **Result:** 881/881 CollectionTests pass (871 pre-existing + 10 new R9 tests).
+- **Confidence:** CONFIRMED.
+- **Note:** The pre-existing O8.15 probe typo (`L6666666666666ength` → `Length`) was corrected to allow compilation; all O8.15 probe markers and logic are preserved.
 
 ---
 
@@ -366,7 +372,4 @@ See the detailed entry in the prioritized backlog below.
 
 ## Recommended next milestone
 
-Batch 8: R9 (host-level error surfacing). R2 was already fixed in commit e80d676.
-R9 depends on R1 (now complete) and is independently testable. Do not begin
-until R9's host-level error surfacing is explicitly decided (the O8.15 probe
-changes in OsbMain.cs must be cleanly separated first).
+Batch 8 (R9) complete. R1–R9 all FIXED. The O8.15 probe changes in OsbMain.cs are preserved (with a typo fix to allow compilation). No further reliability audit items remain in this backlog.

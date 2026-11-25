@@ -278,6 +278,37 @@ internal static unsafe class OsbMain
 
         try
         {
+            // TEMPORARY O8.15.1 Probe G: isolate StringMap/keyword static init
+            Syscall.PrintString("KW_PRE");
+            // Probe 1: does new string[8] (first array-of-ref in StringMap ctor) fault?
+            string[] arr = new string[8];
+            Syscall.PrintString("ARR_OK");
+            // Probe 2: new TokenType[8] (value-type szarray like Token[])
+            Osb.Engine.Core.Lang.TokenType[] tarr = new Osb.Engine.Core.Lang.TokenType[8];
+            Syscall.PrintString("TARR_OK");
+            // Probe 3: new bool[8]
+            bool[] barr = new bool[8];
+            Syscall.PrintString("BARR_OK");
+            // Probe 3b: StringComparer.OrdinalIgnoreCase (triggers StringComparer cctor + object alloc)
+            var sc = System.StringComparer.OrdinalIgnoreCase;
+            Syscall.PrintString("SC_OK");
+            // Probe 3c: string literal Length
+            int l = "USING".Length;
+            Syscall.PrintString("LEN_OK");
+            // Probe 3d: string literal indexer x[0]
+            char c = "USING"[0];
+            Syscall.PrintString("IDX_OK");
+            // Probe 3e: string.Equals
+            bool e = "AND".Equals("USING");
+            Syscall.PrintString("EQ_OK");
+            // Probe 4: Keyword static ctor + lookup
+            Osb.Engine.Core.Lang.TokenType kt;
+            bool r1 = Osb.Engine.Core.Lang.Keywords.TryGetKeyword("USING", out kt);
+            Syscall.PrintString(r1 ? "KW1_OK" : "KW1_NO");
+            bool r2 = Osb.Engine.Core.Lang.Keywords.TryGetKeyword("FOO", out kt);
+            Syscall.PrintString(r2 ? "KW2_OK" : "KW2_NO");
+            Syscall.PrintString("KW_POST");
+
             Syscall.PrintString("B4LEX$");
             var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
             Syscall.PrintString("AFLEX$");
@@ -307,6 +338,13 @@ internal static unsafe class OsbMain
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
             interpreter.Execute(program);
+            if (interpreter.CurrentFlow == Osb.Engine.Core.Eval.ControlFlow.Exception)
+            {
+                Syscall.PrintString("Runtime error: ");
+                Syscall.PrintString(interpreter.CurrentExceptionMessage ?? "unknown");
+                Syscall.PrintString("\r\n");
+                Syscall.Exit(1);
+            }
         }
         catch (Exception ex)
         {

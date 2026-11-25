@@ -64,6 +64,10 @@ internal static class Program
         RuntimeTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Host-Level Error Surfacing Tests (R9) ===");
+        HostErrorSurfacingTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }
