@@ -60,6 +60,10 @@ internal static class Program
         ClosureEqualityTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Interpreter Runtime Behavioral Tests (R5) ===");
+        RuntimeTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }

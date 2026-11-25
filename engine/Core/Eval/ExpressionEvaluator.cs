@@ -292,7 +292,10 @@ internal sealed class ExpressionEvaluator
 
         var args = new ValueArray();
         foreach (var arg in expr.Args)
+        {
             args.Add(Evaluate(arg));
+            if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
+        }
 
         var ctor = cls.FindMethod("CONSTRUCTOR");
         var instance = _ctx.Heap.AllocObject(cls);
