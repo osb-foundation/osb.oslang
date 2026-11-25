@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `7d620a5` (HEAD; Batches 1-3 applied)  
+**Commit:** `b792aa1` (HEAD; Batches 1-4 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
@@ -18,7 +18,7 @@ Severity: CRITICAL > HIGH > MEDIUM > LOW.
 Confidence: CONFIRMED (code trace / test), LIKELY (strong code evidence),
 LATENT (defect present but code path not exercised).
 
-"Fixes implemented" below reflect Batches 1-3. Remaining items are the
+"Fixes implemented" below reflect Batches 1-4. Remaining items are the
 recommended backlog for subsequent sessions.
 
 ---
@@ -29,6 +29,14 @@ recommended backlog for subsequent sessions.
 ### R6 — FrameStack.Current returns null! when empty — MEDIUM — CONFIRMED — FIXED
 
 See the detailed entries in the prioritized backlog below.
+
+---
+
+## Batch 4 — implemented (commit b792aa1)
+
+### R4 — Ambiguous value accessors disguise failures — HIGH — CONFIRMED — FIXED
+
+See the detailed entry in the prioritized backlog below.
 
 ---
 
@@ -139,27 +147,55 @@ See the detailed entries in the prioritized backlog below.
   (all live keys remain findable) regardless.
 - **Confidence:** CONFIRMED.
 
-### R4 — Ambiguous value accessors disguise failures — HIGH — CONFIRMED
+### R4 — Ambiguous value accessors disguise failures — HIGH — CONFIRMED — FIXED (commit b792aa1)
 
 - **Area:** Error propagation / value system.
-- **Evidence:** `engine/Core/Values/Value.cs`: `AsNumber` returns `double.NaN`
-  for non-numbers (line 74, NaN indistinguishable from valid NaN); `AsString`/
-  `AsArray`/`AsObject`/… return `null!` for wrong kind (lines 75-82).
-  `StandardLibrary.cs`: `NUMBER` returns `Value.Number(0)` for non-number args
-  (line 29, silent default); `StringOp` returns `Value.NullValue` silently on
-  wrong arg type (lines 107, 113).
-- **Root cause:** Accessors return default/ambiguous values instead of routing
-  through `ctx.Throw()`; callers cannot distinguish failure from a valid value.
-- **Impact:** Invalid values silently propagate through expressions; the original
-  error can be overwritten by a subsequent generic throw (e.g. `EvaluateBinary`
-  throws "operator not supported" after a sub-expression already failed, losing
-  the real location/message).
-- **Recommended fix:** Make accessor failure explicit. Either add `TryAs*`
-  bool-returning accessors or have kind-mismatch route through `ctx.Throw()` at
-  the call site. Avoid returning `double.NaN`/0/`null` as failure indicators.
-- **Dependencies:** R1.
-- **Regression test:** Calling a string/array/number accessor on a mismatched kind
-  raises a catchable runtime error (not NaN/0/null).
+- **Evidence:** `engine/Core/Values/Value.cs`: `AsNumber` returned `double.NaN`
+  for non-numbers; `AsString`/`AsArray`/`AsObject`/… returned `null!` for wrong
+  kind. `StandardLibrary.cs`: `NUMBER` returned `Value.Number(0)` for non-number
+  args; `StringOp` returned `Value.NullValue` silently on wrong arg type.
+  `ExpressionEvaluator.EvaluateBinary` and statement executors (Return/Break/
+  Continue) overwrote a pending `Exception` flow with a subsequent result or a
+  generic error, destroying the original error message.
+- **Root cause:** Accessors returned default/ambiguous values instead of making
+  failure explicit; statement executors clobbered the soft-throw `Exception`
+  flow established by R1.
+- **Impact:** Invalid values silently propagated through expressions; the
+  original error could be overwritten by a subsequent generic throw, losing the
+  real location/message; `NUMBER`/`StringOp` silently substituted defaults.
+- **Implemented fix:**
+  - `Value`: added `TryAsX` accessors (bool + out) for every typed accessor
+    (`TryAsNumber`, `TryAsBoolean`, `TryAsString`, `TryAsArray`, `TryAsObject`,
+    `TryAsEnum`, `TryAsEnumSet`, `TryAsClosure`, `TryAsKeyEvent`,
+    `TryAsNativeFunction`). No `ExecutionContext` dependency; failure is
+    explicit via the return flag, never disguised as NaN/0/null!/NullValue.
+    `AsX` properties remain as unchecked convenience getters used only after
+    kind validation in engine call sites (all such call sites guard kind first,
+    so the NaN/null! paths are dead in practice).
+  - `StandardLibrary.NUMBER`: ctx.Throw "NUMBER expects a single numeric
+    argument" on wrong arg count or non-numeric arg, instead of returning 0.
+  - `StandardLibrary.StringOp`: ctx.Throw "Expected a string argument" /
+    "Expected a string and a number argument" on wrong arg type, instead of
+    returning NullValue; `location` plumbed through for context.
+  - `ExpressionEvaluator.EvaluateBinary`/`EvaluateCall`/`EvaluateMethodCall`:
+    preserve a pending `Exception` flow after sub-expression evaluation
+    (return NullValue immediately), so the original error is not overwritten by
+    a generic "operator not supported" error.
+  - `StatementExecutor` Return/Break/Continue: only set flow when currently
+    Normal, so a pending Exception from an evaluated expression is not
+    clobbered by a subsequent Return/Break/Continue.
+- **Dependencies:** R1 (soft-throw exception flow preserved across calls).
+- **Regression test:** `host/CollectionTests/ValueAccessorTests.cs` — 29 tests:
+  TryAsX correct and mismatched access (number, string, array, object, boolean);
+  NUMBER valid / invalid / no-args via interpreter (flow + message preserved);
+  LEFT valid / invalid arg types via interpreter; `(1/0)+"abc"` preserves
+  "Division by zero." instead of a generic operator error; function-call error
+  ("Division by zero.") remains observable across the call boundary (R1);
+  valid coercions (`1+2`, `"a"+"b"`) continue to work.
+- **Limitation:** `AsX` properties still return NaN/null! on mismatch but are
+  only reachable via unguarded calls; no engine call site does this. Wiring
+  every existing guarded call site to `TryAsX` is a broader cleanup out of R4
+  scope.
 - **Confidence:** CONFIRMED.
 
 ### R5 — Test gap: interpreter/runtime not covered — HIGH — CONFIRMED
