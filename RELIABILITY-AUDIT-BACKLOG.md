@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `b792aa1` (HEAD; Batches 1-4 applied)  
+**Commit:** `e7f3d73` (HEAD; Batches 1-5 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
@@ -37,6 +37,28 @@ See the detailed entries in the prioritized backlog below.
 ### R4 — Ambiguous value accessors disguise failures — HIGH — CONFIRMED — FIXED
 
 See the detailed entry in the prioritized backlog below.
+
+## Batch 5 — implemented (commit e7f3d73)
+
+### R7 — Closure identity-based equality — MEDIUM — CONFIRMED — FIXED
+
+- **Area:** Object/handle integrity / equality semantics.
+- **Evidence:** `engine/Core/Eval/ValueUtilities.cs`: `ValuesEqual` compared
+  arrays/objects by reference (`a.AsArray == b.AsArray`,
+  `a.AsObject == b.AsObject`); `Closure` fell to the `_ => false` catch-all,
+  leaving closure equality unspecified.
+- **Fix:** Added an explicit `ValueKind.Closure =>
+  a.AsClosure == b.AsClosure` arm to `ValuesEqual`. `HeapClosure` is a
+  `sealed class : HeapObject` with no `==`/`Equals` overload, so `==` is
+  reference identity — matching the established Array/Object semantics.
+- **Regression test:** `host/CollectionTests/ClosureEqualityTests.cs` — 18 tests:
+  closure compared with itself true; distinct closures with the same body /
+  equivalent captures / different captures false; closure vs non-kind false;
+  array/object/primitive identity unchanged; `==` does not execute the closure
+  body (end-to-end through the interpreter).
+- **Result:** 772/772 CollectionTests pass (754 pre-existing + 18 new R7 tests).
+- **Dependencies:** None.
+- **Confidence:** CONFIRMED.
 
 ---
 
@@ -237,22 +259,29 @@ See the detailed entry in the prioritized backlog below.
   Current after Pop-to-empty throws; Count tracks Push/Pop.
 - **Confidence:** CONFIRMED (latent).
 
-### R7 — ValuesEqual uses reference equality for Array/Object; Closure unhandled — MEDIUM — CONFIRMED
+### R7 — ValuesEqual uses reference equality for Array/Object; Closure unhandled — MEDIUM — CONFIRMED — FIXED (commit e7f3d73)
 
 - **Area:** Object/handle integrity / equality semantics.
-- **Evidence:** `engine/Core/Eval/ValueUtilities.cs:32-36`: `ValuesEqual` compares
+- **Evidence:** `engine/Core/Eval/ValueUtilities.cs`: `ValuesEqual` compares
   arrays/objects by reference (`a.AsArray == b.AsArray`, `a.AsObject ==
-  b.AsObject`); `Closure` falls to the `_ => false` arm. Identity-based equality
-  is intentional per architecture, but Closure is silently never-equal and there
-  is no documentation pinning identity-vs-value semantics.
-- **Impact:** Two semantically-identical arrays/objects compare false; Closure
-  equality unspecified; risk of confusing identity with value equality.
-- **Recommended fix:** Document the established identity-based equality model.
-  Add explicit Closure handling (identity) so it is not silently the catch-all.
-  Do not change to value equality without architectural decision.
+  b.AsObject`); `Closure` previously fell to the `_ => false` catch-all, leaving
+  closure equality unspecified. Now an explicit `ValueKind.Closure =>
+  a.AsClosure == b.AsClosure` arm compares closure references by identity
+  (`HeapClosure` is a `sealed class : HeapObject` with no `==`/`Equals`
+  overload).
+- **Impact (resolved):** Closure equality is no longer unspecified; distinct
+  closure instances compare false even with identical bodies or equivalent
+  captures, and a closure compares equal to itself.
+- **Fix:** `engine/Core/Eval/ValueUtilities.cs` — added the explicit Closure
+  arm to `ValuesEqual`. Array, object, primitive, null, and invalid-value
+  behavior are unchanged.
+- **Regression test:** `host/CollectionTests/ClosureEqualityTests.cs` — 18 tests:
+  closure vs itself true; distinct closures same body / equivalent captures /
+  different captures false; closure vs non-kind false; array/object/primitive
+  identity unchanged; `==` does not execute the closure body (end-to-end via
+  interpreter).
+- **Result:** 772/772 CollectionTests pass (754 pre-existing + 18 new).
 - **Dependencies:** None.
-- **Regression test:** Two distinct arrays with identical content compare false
-  (identity); same reference compares true; Closure identity-based.
 - **Confidence:** CONFIRMED.
 
 ### R8 — Inconsistent error model: C# exceptions bypass soft-throw — MEDIUM — CONFIRMED
