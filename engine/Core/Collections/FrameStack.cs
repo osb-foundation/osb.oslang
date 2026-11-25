@@ -19,7 +19,14 @@ public sealed class FrameStack
     }
 
     public int Count => _count;
-    public Frame Current => _count > 0 ? _frames[_count - 1] : null!;
+    public Frame Current
+    {
+        get
+        {
+            if (_count == 0) throw new InvalidOperationException("Empty frame stack");
+            return _frames[_count - 1];
+        }
+    }
 
     public void Push(Frame frame)
     {

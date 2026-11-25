@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `a774f87` (Batch 1 applied)  
+**Commit:** `e80d676` (HEAD; Batch 3 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
@@ -18,8 +18,17 @@ Severity: CRITICAL > HIGH > MEDIUM > LOW.
 Confidence: CONFIRMED (code trace / test), LIKELY (strong code evidence),
 LATENT (defect present but code path not exercised).
 
-"Fixes implemented" below reflects Batch 1 only. Remaining items are the
+"Fixes implemented" below reflect Batches 1-3. Remaining items are the
 recommended backlog for subsequent sessions.
+
+---
+
+## Batch 3 — implemented
+
+### R3 — StringMap.Remove breaks open-addressing probe chains — HIGH — CONFIRMED — FIXED
+### R6 — FrameStack.Current returns null! when empty — MEDIUM — CONFIRMED — FIXED
+
+See the detailed entries in the prioritized backlog below.
 
 ---
 
@@ -60,7 +69,7 @@ recommended backlog for subsequent sessions.
 
 ## Prioritized backlog (not yet implemented)
 
-### R2 — Allocation failure silently ignored / null-deref risk — CRITICAL — CONFIRMED — FIXED (Batch 2 commit)
+### R2 — Allocation failure silently ignored / null-deref risk — CRITICAL — CONFIRMED — FIXED (commit e80d676)
 
 - **Area:** Memory and allocation reliability.
 - **Evidence:** `engine/Core/Heap/EngineHeap.cs` `Allocate`:
@@ -98,27 +107,37 @@ recommended backlog for subsequent sessions.
   fault-injected (null-returning) factory rather than real memory exhaustion.
 - **Confidence:** CONFIRMED.
 
-### R3 — StringMap.Remove breaks open-addressing probe chains — HIGH — CONFIRMED (latent)
+### R3 — StringMap.Remove breaks open-addressing probe chains — HIGH — CONFIRMED — FIXED
 
 - **Area:** Object/handle integrity & collections.
-- **Evidence:** `engine/Core/Collections/StringMap.cs:74-86` `Remove` sets
-  `_occupied[index] = false`; `FindIndex` (line 148) returns -1 at the first
-  unoccupied slot, so any key inserted by probing through a deleted slot becomes
-  unfindable. `_deletedCount`/`"\0"` handling is inconsistent: `Remove` stores
-  `null` but `Insert` checks `_keys[probe] == "\0"` (dead code path). `Remove`
-  is currently unused anywhere in the engine.
+- **Evidence:** `engine/Core/Collections/StringMap.cs` `Remove` set
+  `_occupied[index] = false`; `FindIndex` returned -1 at the first unoccupied
+  slot, so any key inserted by probing through a deleted slot became unfindable.
+  `_deletedCount`/`"\0"` handling was inconsistent. `Remove` is unused in the engine.
 - **Root cause:** Classic open-addressing deletion bug; tombstone handling
   incomplete/inconsistent.
-- **Impact:** If `Remove` is ever enabled, lookups silently fail (keys lost) —
-  silent acceptance of invalid state, data corruption risk for locals/globals/
-  function/class maps.
-- **Recommended fix:** Either implement correct tombstone semantics (mark deleted
-  slots so probes continue, rehash on insert) or remove `Remove` and the dead
-  `_deletedCount`/`"\0"` code. Since unused, removing is safest.
+- **Impact:** If `Remove` is enabled, lookups silently fail (keys lost) — silent
+  acceptance of invalid state, data corruption risk for locals/globals/function/
+  class maps.
+- **Implemented fix:** Correct tombstone semantics. A separate `_deleted[]` array
+  tracks tombstones; `_occupied` stays true for tombstones so probe chains
+  continue past them and stop only at truly empty slots. `FindIndex` skips
+  tombstones and matches only live entries. `Insert` reuses the earliest tombstone
+  or an empty slot, updates live entries in place, and decrements `_deletedCount`
+  when reclaiming a tombstone. `Resize` rehashes only live entries and clears
+  tombstone state. `Clear` resets `_deleted`. The public `Remove` API is preserved
+  and now correct.
 - **Dependencies:** None.
-- **Regression test:** Insert keys that collide/probe, delete a middle key, verify
-  subsequent keys remain findable; verify `ContainsKey`/`TryGetValue` after delete.
-- **Confidence:** CONFIRMED (code inspection); LATENT (unused).
+- **Regression test:** `host/CollectionTests/StringMapTests.cs` — insert 200 keys,
+  delete every 3rd, verify all remaining keys findable with correct values after
+  resize; remove-absent returns false; repeated remove idempotent; reinsert removed
+  key; indexer throws KeyNotFoundException on removed key; enumeration skips
+  tombstones (count matches Count).
+- **Limitation:** With .NET string hash randomization, probe-chain collisions are
+  probabilistic per process; the 200-key test makes chains near-certain but not
+  guaranteed in every process. Tombstone semantics are verified by invariant
+  (all live keys remain findable) regardless.
+- **Confidence:** CONFIRMED.
 
 ### R4 — Ambiguous value accessors disguise failures — HIGH — CONFIRMED
 
@@ -163,17 +182,23 @@ recommended backlog for subsequent sessions.
   fix.
 - **Confidence:** CONFIRMED.
 
-### R6 — FrameStack.Current returns null! when empty — MEDIUM — CONFIRMED (latent)
+### R6 — FrameStack.Current returns null! when empty — MEDIUM — CONFIRMED — FIXED
 
 - **Area:** Runtime state / stack integrity.
-- **Evidence:** `engine/Core/Collections/FrameStack.cs:22` `Current` returns
-  `null!` when `_count == 0`. Callers may NRE.
+- **Evidence:** `engine/Core/Collections/FrameStack.cs` `Current` returned
+  `null!` when `_count == 0`. Callers may NRE with no context.
 - **Root cause:** Non-nullable return without empty-guard contract.
 - **Impact:** NullReferenceException on stack underflow; not a clean runtime error.
-- **Recommended fix:** Make `Current` return `Frame?` or assert non-empty with a
-  clear diagnostic; audit callers.
-- **Dependencies:** R1 (surface as runtime error).
-- **Regression test:** Peek/Current on empty stack.
+- **Implemented fix:** `Current` now throws `InvalidOperationException("Empty frame stack")`
+  when empty, matching the existing `Pop` contract. Non-nullable return type and
+  all existing callers are unchanged; callers only access `Current` when a frame is
+  present during normal execution, so behavior is unchanged on valid paths and
+  invalid access now fails fast with a clear diagnostic.
+- **Dependencies:** None.
+- **Regression test:** `host/CollectionTests/FrameStackTests.cs` — Current on empty
+  throws; Current after Push returns top; Current after multiple Push; Current after
+  Pop returns previous; repeated Push/Pop maintains Count; Pop on empty throws;
+  Current after Pop-to-empty throws; Count tracks Push/Pop.
 - **Confidence:** CONFIRMED (latent).
 
 ### R7 — ValuesEqual uses reference equality for Array/Object; Closure unhandled — MEDIUM — CONFIRMED

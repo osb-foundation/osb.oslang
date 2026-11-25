@@ -17,6 +17,7 @@ public sealed class StringMap<T>
     private bool[] _occupied;
     private int _count;
     private int _deletedCount;
+    private bool[] _deleted;
     private readonly StringComparer _comparer;
 
     // Load factor threshold for resizing
@@ -28,6 +29,7 @@ public sealed class StringMap<T>
         _keys = new string[capacity];
         _values = new T[capacity];
         _occupied = new bool[capacity];
+        _deleted = new bool[capacity];
         _count = 0;
         _deletedCount = 0;
         _comparer = comparer ?? StringComparer.OrdinalIgnoreCase;
@@ -79,7 +81,8 @@ public sealed class StringMap<T>
 
         _keys[index] = null;
         _values[index] = default!;
-        _occupied[index] = false;
+        _occupied[index] = true;
+        _deleted[index] = true;
         _count--;
         _deletedCount++;
         return true;
@@ -87,11 +90,12 @@ public sealed class StringMap<T>
 
     public void Clear()
     {
-        if (_count > 0)
+        if (_count > 0 || _deletedCount > 0)
         {
             System.Array.Clear(_keys, 0, _keys.Length);
             System.Array.Clear(_values, 0, _values.Length);
             System.Array.Clear(_occupied, 0, _occupied.Length);
+            System.Array.Clear(_deleted, 0, _deleted.Length);
             _count = 0;
             _deletedCount = 0;
         }
@@ -115,7 +119,7 @@ public sealed class StringMap<T>
         {
             while (_index < _map._keys.Length)
             {
-                if (_map._occupied[_index])
+                if (_map._occupied[_index] && !_map._deleted[_index])
                     return true;
                 _index++;
             }
@@ -148,8 +152,7 @@ public sealed class StringMap<T>
             if (!_occupied[probe])
                 return -1; // Empty slot - not found
 
-            string existingKey = _keys[probe];
-            if (_comparer.Equals(existingKey, key))
+            if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
                 return probe; // Found
         }
         return -1; // Full table (shouldn't happen with resize)
@@ -163,27 +166,32 @@ public sealed class StringMap<T>
 
         int mask = _keys.Length - 1;
         int index = key.GetHashCode() & mask;
+        int firstDeleted = -1;
 
         for (int i = 0; i < _keys.Length; i++)
         {
             int probe = (index + i) & mask;
 
-            if (!_occupied[probe] || _deletedCount > 0 && _keys[probe] == "\0")
+            if (!_occupied[probe])
             {
-                // Empty or deleted slot
-                _keys[probe] = key;
-                _values[probe] = value;
-                _occupied[probe] = true;
+                int target = firstDeleted >= 0 ? firstDeleted : probe;
+                _keys[target] = key;
+                _values[target] = value;
+                _occupied[target] = true;
+                _deleted[target] = false;
+                if (firstDeleted >= 0) _deletedCount--;
                 _count++;
-                if (_keys[probe] == "\0") _deletedCount--;
                 return;
             }
 
-            if (_comparer.Equals(_keys[probe], key))
+            if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
             {
                 _values[probe] = value;
                 return;
             }
+
+            if (_deleted[probe] && firstDeleted < 0)
+                firstDeleted = probe;
         }
 
         // Should never reach here if resize works correctly
@@ -196,16 +204,18 @@ public sealed class StringMap<T>
         var oldKeys = _keys;
         var oldValues = _values;
         var oldOccupied = _occupied;
+        var oldDeleted = _deleted;
 
         _keys = new string[newCapacity];
         _values = new T[newCapacity];
         _occupied = new bool[newCapacity];
+        _deleted = new bool[newCapacity];
         _count = 0;
         _deletedCount = 0;
 
         for (int i = 0; i < oldKeys.Length; i++)
         {
-            if (oldOccupied[i] && oldKeys[i] != "\0")
+            if (oldOccupied[i] && !oldDeleted[i] && oldKeys[i] != null)
             {
                 Insert(oldKeys[i], oldValues[i]);
             }
