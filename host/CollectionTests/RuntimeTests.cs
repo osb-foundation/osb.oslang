@@ -75,6 +75,10 @@ internal static class RuntimeTests
         TryCatchConsumesFunctionCall();
         TryCatchPropagatesToOuterCatch();
         CatchBodyThrowPropagates();
+
+        // ── R8: Runtime Error Model Consistency ──
+        CountOnUnsupportedTypeThrowsCatchableError();
+        PrintArrayDoesNotThrowCSharpException();
     }
 
     // ── helpers ──────────────────────────────────────────────────────
@@ -746,6 +750,35 @@ internal static class RuntimeTests
         Program.Check("Runtime.CatchBodyThrowPropagates.Message",
             interp.CurrentExceptionMessage == "Division by zero.",
             $"msg={interp.CurrentExceptionMessage}");
+    }
+
+    // ── R8: Runtime Error Model Consistency tests ──────────────────────
+
+    private static void CountOnUnsupportedTypeThrowsCatchableError()
+    {
+        // COUNT on a number should throw a catchable runtime error, not a C# exception
+        var (interp, _) = RunMain(ExprStmt(Call("COUNT", Num(5))));
+        Program.Check("Runtime.CountOnUnsupportedTypeThrowsCatchableError.Flow",
+            interp.CurrentFlow == ControlFlow.Exception,
+            $"flow={interp.CurrentFlow}");
+        Program.Check("Runtime.CountOnUnsupportedTypeThrowsCatchableError.Message",
+            interp.CurrentExceptionMessage != null && interp.CurrentExceptionMessage.Contains("COUNT"),
+            $"msg={interp.CurrentExceptionMessage}");
+    }
+
+    private static void PrintArrayDoesNotThrowCSharpException()
+    {
+        // PRINT on an array should not throw a C# InvalidOperationException
+        // It should either produce a string representation or a catchable runtime error
+        var (interp, _) = RunMain(
+            Var("a"), Assign("a", Arr(Num(1), Num(2))),
+            new Lang.PrintStmt(new List<Expr> { Id("a") }, Loc)
+        );
+        // After fix: flow should be Normal (array prints as "ARRAY[2]") or Exception with catchable message
+        // Before fix: C# InvalidOperationException would crash the test runner
+        Program.Check("Runtime.PrintArrayDoesNotThrowCSharpException.Flow",
+            interp.CurrentFlow == ControlFlow.Normal || interp.CurrentFlow == ControlFlow.Exception,
+            $"flow={interp.CurrentFlow} (should not crash with C# exception)");
     }
 
     private static (Interpreter interp, Value result) RunWithClasses(

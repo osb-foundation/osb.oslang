@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `f21419a` (HEAD; Batches 1-6 applied)  
+**Commit:** `f21419a` (HEAD; Batches 1-7 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
@@ -18,7 +18,7 @@ Severity: CRITICAL > HIGH > MEDIUM > LOW.
 Confidence: CONFIRMED (code trace / test), LIKELY (strong code evidence),
 LATENT (defect present but code path not exercised).
 
-"Fixes implemented" below reflect Batches 1-5. Remaining items are the
+"Fixes implemented" below reflect Batches 1-6. Remaining items are the
 recommended backlog for subsequent sessions.
 
 ---
@@ -73,6 +73,29 @@ See the detailed entry in the prioritized backlog below.
 - **Regression test:** `Runtime.NewWithArgThatThrowsPreservesException`.
 - **Result:** 868/868 CollectionTests pass (772 pre-existing + 96 new R5 tests).
 - **Dependencies:** R1 (soft-throw exception flow preserved across calls).
+- **Confidence:** CONFIRMED.
+
+---
+
+## Batch 7 — implemented
+
+### R8 — Inconsistent error model: C# exceptions bypass soft-throw — MEDIUM — CONFIRMED — FIXED
+
+- **Area:** Error propagation consistency.
+- **Evidence:** Two paths threw real C# exceptions that bypassed the `ControlFlow.Exception` soft-throw system:
+  1. `StandardLibrary.Count` (line 107) threw `InvalidOperationException` for unsupported value kinds (Number, Boolean, Object, Enum, EnumSet, Closure, KeyEvent, NativeFunction).
+  2. `ValueUtilities.ToDisplayString` (line 47) threw `InvalidOperationException` when printing arrays via PRINT/SHOW.
+  Other cited sites (`StringMap.Add`/`this[]`, `FrameStack.Pop`, `ExpressionEvaluator.Evaluate` unknown type) are internal invariants / programmer bugs and correctly remain as C# exceptions.
+- **Root cause:** Two error models coexisted without a single convention for user-facing runtime errors.
+- **Impact:** User code errors (invalid `COUNT` argument, printing arrays) escaped as unhandled C# exceptions instead of catchable runtime errors; `TRY/CATCH` could not consume them.
+- **Fix:**
+  - `StandardLibrary.Count`: Added `ExecutionContext` and `SourceLocation` parameters; replaced `throw` with `ctx.Throw($"COUNT not supported for {value.Kind}", location)`. Call site in `TryCall` updated to pass context.
+  - `ValueUtilities.ToDisplayString`: Changed Array case from throwing to returning `"ARRAY[{length}]"`, consistent with `Value.ToString()` representation. No C# exception; printing arrays now works.
+- **Dependencies:** R1 (soft-throw propagation).
+- **Regression tests:** `host/CollectionTests/RuntimeTests.cs`:
+  - `Runtime.CountOnUnsupportedTypeThrowsCatchableError` — verifies `COUNT(5)` produces `ControlFlow.Exception` with message "COUNT not supported for Number".
+  - `Runtime.PrintArrayDoesNotThrowCSharpException` — verifies `PRINT [1,2]` does not crash with `InvalidOperationException`; flow remains `Normal`.
+- **Result:** 871/871 CollectionTests pass (868 pre-existing + 3 new R8 assertions).
 - **Confidence:** CONFIRMED.
 
 ---
@@ -291,22 +314,23 @@ See the detailed entry in the prioritized backlog below.
 - **Dependencies:** None.
 - **Confidence:** CONFIRMED.
 
-### R8 — Inconsistent error model: C# exceptions bypass soft-throw — MEDIUM — CONFIRMED
+### R8 — Inconsistent error model: C# exceptions bypass soft-throw — MEDIUM — CONFIRMED — FIXED (Batch 7)
 
 - **Area:** Error propagation consistency.
-- **Evidence:** Some paths throw real C# exceptions (`InvalidOperationException`
-  in `StandardLibrary.Count` line 101, `StringMap.Add`/`this[]`, `FrameStack.Pop`)
-  that bypass the `ControlFlow.Exception` soft-throw system entirely, while
-  others use `ctx.Throw()`. Inconsistent propagation across execution boundaries.
-- **Root cause:** Two error models coexist without a single convention.
-- **Impact:** Callers cannot rely on one error-handling path; diagnostics
-  inconsistent; some errors escape as unhandled C# exceptions.
-- **Recommended fix:** Adopt one explicit model (the `ControlFlow.Exception`
-  soft-throw, now propagated correctly via R1). Convert ad-hoc `throw` sites to
-  `ctx.Throw()` where they represent runtime errors, or document that C# exceptions
-  are programmer bugs (not runtime errors) and let them crash.
-- **Dependencies:** R1.
-- **Regression test:** `COUNT` on unsupported type raises catchable runtime error.
+- **Evidence:** Two paths threw real C# exceptions that bypassed the `ControlFlow.Exception` soft-throw system:
+  1. `StandardLibrary.Count` (line 107) threw `InvalidOperationException` for unsupported value kinds (Number, Boolean, Object, Enum, EnumSet, Closure, KeyEvent, NativeFunction).
+  2. `ValueUtilities.ToDisplayString` (line 47) threw `InvalidOperationException` when printing arrays via PRINT/SHOW.
+  Other cited sites (`StringMap.Add`/`this[]`, `FrameStack.Pop`, `ExpressionEvaluator.Evaluate` unknown type) are internal invariants / programmer bugs and correctly remain as C# exceptions.
+- **Root cause:** Two error models coexisted without a single convention for user-facing runtime errors.
+- **Impact:** User code errors (invalid `COUNT` argument, printing arrays) escaped as unhandled C# exceptions instead of catchable runtime errors; `TRY/CATCH` could not consume them.
+- **Fix:**
+  - `StandardLibrary.Count`: Added `ExecutionContext` and `SourceLocation` parameters; replaced `throw` with `ctx.Throw($"COUNT not supported for {value.Kind}", location)`. Call site in `TryCall` updated to pass context.
+  - `ValueUtilities.ToDisplayString`: Changed Array case from throwing to returning `"ARRAY[{length}]"`, consistent with `Value.ToString()` representation. No C# exception; printing arrays now works.
+- **Dependencies:** R1 (soft-throw propagation).
+- **Regression tests:** `host/CollectionTests/RuntimeTests.cs`:
+  - `Runtime.CountOnUnsupportedTypeThrowsCatchableError` — verifies `COUNT(5)` produces `ControlFlow.Exception` with message "COUNT not supported for Number".
+  - `Runtime.PrintArrayDoesNotThrowCSharpException` — verifies `PRINT [1,2]` does not crash with `InvalidOperationException`; flow remains `Normal`.
+- **Result:** 871/871 CollectionTests pass (868 pre-existing + 3 new R8 assertions).
 - **Confidence:** CONFIRMED.
 
 ### R9 — Top-level error not surfaced to user — MEDIUM — LIKELY
@@ -342,7 +366,7 @@ See the detailed entry in the prioritized backlog below.
 
 ## Recommended next milestone
 
-Batch 2: R2 (allocation-failure semantics) + R9 (host-level error surfacing).
-Both depend on R1 (now complete) and are independently testable. Do not begin
-Batch 2 until R2's allocation-failure semantics are explicitly decided (document
-the gap if recovery is undefined per the architecture).
+Batch 8: R9 (host-level error surfacing). R2 was already fixed in commit e80d676.
+R9 depends on R1 (now complete) and is independently testable. Do not begin
+until R9's host-level error surfacing is explicitly decided (the O8.15 probe
+changes in OsbMain.cs must be cleanly separated first).

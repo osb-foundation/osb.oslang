@@ -44,7 +44,7 @@ internal static class ValueUtilities
         ValueKind.String => value.AsString.ToString(),
         ValueKind.Number => value.ToString(),
         ValueKind.Boolean => value.AsBoolean ? "TRUE" : "FALSE",
-        ValueKind.Array => throw new System.InvalidOperationException("Cannot convert ARRAY to STRING"),
+        ValueKind.Array => $"ARRAY[{value.AsArray.Length}]",
         ValueKind.Object => value.AsObject switch
         {
             HeapObjectInstance inst => inst.ClassName,

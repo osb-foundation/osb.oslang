@@ -42,7 +42,7 @@ public static class StandardLibrary
         }
         if (upper == "COUNT")
         {
-            result = args.Count == 1 ? Count(args[0], utf8) : Value.Number(0);
+            result = args.Count == 1 ? Count(args[0], location, ctx, utf8) : Value.Number(0);
             return true;
         }
         if (upper == "TYPEOF")
@@ -99,13 +99,22 @@ public static class StandardLibrary
         return false;
     }
 
-    private static Value Count(Value value, IUtf8Provider utf8) => value.Kind switch
+    private static Value Count(Value value, SourceLocation location, ExecutionContext ctx, IUtf8Provider utf8)
     {
-        ValueKind.String => Value.Number(value.AsString.CodePointCount), // SQ-001: code points
-        ValueKind.Array => Value.Number(value.AsArray.Length),
-        ValueKind.Null => Value.Number(0),
-        _ => throw new System.InvalidOperationException($"COUNT not supported for {value.Kind}"),
-    };
+        if (value.Kind is not (ValueKind.String or ValueKind.Array or ValueKind.Null))
+        {
+            ctx.Throw($"COUNT not supported for {value.Kind}", location);
+            return Value.NullValue;
+        }
+
+        return value.Kind switch
+        {
+            ValueKind.String => Value.Number(value.AsString.CodePointCount), // SQ-001: code points
+            ValueKind.Array => Value.Number(value.AsArray.Length),
+            ValueKind.Null => Value.Number(0),
+            _ => Value.NullValue,
+        };
+    }
 
     private static Value StringOp(IReadOnlyList<Value> args, Func<HeapString, Value> op, SourceLocation location, ExecutionContext ctx, IUtf8Provider utf8)
     {
