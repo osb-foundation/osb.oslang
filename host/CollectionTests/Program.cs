@@ -43,6 +43,10 @@ internal static class Program
         InterpreterTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Allocation Failure Reliability Tests ===");
+        AllocationTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }

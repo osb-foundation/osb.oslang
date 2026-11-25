@@ -36,7 +36,10 @@ public sealed class EngineHeap : IDisposable
     public T Allocate<T>(Func<T> factory) where T : HeapObject
     {
         T obj = factory();
-        if (obj == null) return null!;
+        if (obj == null)
+        {
+            throw new OutOfMemoryException("Heap allocation failed: allocator returned a null object.");
+        }
         _allocCount++;
         return obj;
     }
