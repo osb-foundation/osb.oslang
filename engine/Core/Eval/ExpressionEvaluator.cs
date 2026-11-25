@@ -114,7 +114,10 @@ internal sealed class ExpressionEvaluator
     {
         var args = new ValueArray();
         foreach (var arg in expr.Args)
+        {
             args.Add(Evaluate(arg));
+            if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
+        }
 
         if (StandardLibrary.TryCall(expr.Name, args, expr.Location, _ctx, _math, _time, _random, _utf8, out var result))
             return result;
@@ -132,9 +135,13 @@ internal sealed class ExpressionEvaluator
     private Value EvaluateMethodCall(Lang.MethodCallExpr expr)
     {
         var obj = Evaluate(expr.Object);
+        if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         var args = new ValueArray();
         foreach (var arg in expr.Args)
+        {
             args.Add(Evaluate(arg));
+            if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
+        }
 
         if (expr.Object is Lang.NamespaceExpr ns)
         {
@@ -312,7 +319,9 @@ internal sealed class ExpressionEvaluator
     private Value EvaluateBinary(Lang.BinaryExpr expr)
     {
         var left = Evaluate(expr.Left);
+        if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         var right = Evaluate(expr.Right);
+        if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
 
         if (expr.Operator == "+" && left.Kind == ValueKind.String && right.Kind == ValueKind.String)
         {

@@ -82,6 +82,70 @@ public readonly partial struct Value
     public NativeFunction AsNativeFunction => _kind == ValueKind.NativeFunction ? ((HeapNativeFunction)_heapRef).Function : null!;
     public HeapNativeFunction AsNativeFunctionObj => _kind == ValueKind.NativeFunction ? (HeapNativeFunction)_heapRef : null!;
 
+    #region Explicit (non-ambiguous) accessors
+
+    public bool TryAsNumber(out double value)
+    {
+        if (_kind == ValueKind.Number) { value = BitConverter.UInt64BitsToDouble(_payload); return true; }
+        value = 0; return false;
+    }
+
+    public bool TryAsBoolean(out bool value)
+    {
+        if (_kind == ValueKind.Boolean) { value = _payload != 0; return true; }
+        value = false; return false;
+    }
+
+    public bool TryAsString(out HeapString value)
+    {
+        if (_kind == ValueKind.String) { value = (HeapString)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsArray(out HeapArray value)
+    {
+        if (_kind == ValueKind.Array) { value = (HeapArray)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsObject(out HeapObject value)
+    {
+        if (_kind == ValueKind.Object) { value = (HeapObject)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsEnum(out (int TypeIndex, int MemberIndex) value)
+    {
+        if (_kind == ValueKind.Enum) { value = (_auxInt1, _auxInt2); return true; }
+        value = (-1, -1); return false;
+    }
+
+    public bool TryAsEnumSet(out HeapEnumSet value)
+    {
+        if (_kind == ValueKind.EnumSet) { value = (HeapEnumSet)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsClosure(out HeapClosure value)
+    {
+        if (_kind == ValueKind.Closure) { value = (HeapClosure)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsKeyEvent(out HeapKeyEvent value)
+    {
+        if (_kind == ValueKind.KeyEvent) { value = (HeapKeyEvent)_heapRef; return true; }
+        value = null!; return false;
+    }
+
+    public bool TryAsNativeFunction(out NativeFunction value)
+    {
+        if (_kind == ValueKind.NativeFunction) { value = ((HeapNativeFunction)_heapRef).Function; return true; }
+        value = null!; return false;
+    }
+
+    #endregion
+
     public override string ToString() => _kind switch
     {
         ValueKind.Null => "NULL",

@@ -26,7 +26,13 @@ public static class StandardLibrary
         }
         if (upper == "NUMBER")
         {
-            result = args.Count == 1 && args[0].Kind == ValueKind.Number ? args[0] : Value.Number(0);
+            if (args.Count != 1 || args[0].Kind != ValueKind.Number)
+            {
+                ctx.Throw("NUMBER expects a single numeric argument", location);
+                result = Value.NullValue;
+                return true;
+            }
+            result = args[0];
             return true;
         }
         if (upper == "BOOL")
@@ -46,27 +52,27 @@ public static class StandardLibrary
         }
         if (upper == "LEFT")
         {
-            result = StringOp(args, (s, n) => Value.String(ctx.Heap.AllocString(s.SubstringByCodePoints(0, (int)n).ToString())), ctx, utf8);
+            result = StringOp(args, (s, n) => Value.String(ctx.Heap.AllocString(s.SubstringByCodePoints(0, (int)n).ToString())), location, ctx, utf8);
             return true;
         }
         if (upper == "RIGHT")
         {
-            result = StringOp(args, (s, n) => Value.String(ctx.Heap.AllocString(s.SubstringByCodePoints(s.CodePointCount - (int)n, (int)n).ToString())), ctx, utf8);
+            result = StringOp(args, (s, n) => Value.String(ctx.Heap.AllocString(s.SubstringByCodePoints(s.CodePointCount - (int)n, (int)n).ToString())), location, ctx, utf8);
             return true;
         }
         if (upper == "TOUPPER") // SQ-002: ASCII-only
         {
-            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(AsciiToUpper(s, utf8))), ctx, utf8);
+            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(AsciiToUpper(s, utf8))), location, ctx, utf8);
             return true;
         }
         if (upper == "TOLOWER") // SQ-002: ASCII-only
         {
-            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(AsciiToLower(s, utf8))), ctx, utf8);
+            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(AsciiToLower(s, utf8))), location, ctx, utf8);
             return true;
         }
         if (upper == "TRIM")
         {
-            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(s.ToString().Trim())), ctx, utf8);
+            result = StringOp(args, s => Value.String(ctx.Heap.AllocString(s.ToString().Trim())), location, ctx, utf8);
             return true;
         }
 
@@ -101,17 +107,23 @@ public static class StandardLibrary
         _ => throw new System.InvalidOperationException($"COUNT not supported for {value.Kind}"),
     };
 
-    private static Value StringOp(IReadOnlyList<Value> args, Func<HeapString, Value> op, ExecutionContext ctx, IUtf8Provider utf8)
+    private static Value StringOp(IReadOnlyList<Value> args, Func<HeapString, Value> op, SourceLocation location, ExecutionContext ctx, IUtf8Provider utf8)
     {
         if (args.Count < 1 || args[0].Kind != ValueKind.String)
+        {
+            ctx.Throw("Expected a string argument", location);
             return Value.NullValue;
+        }
         return op(args[0].AsString);
     }
 
-    private static Value StringOp(IReadOnlyList<Value> args, Func<HeapString, double, Value> op, ExecutionContext ctx, IUtf8Provider utf8)
+    private static Value StringOp(IReadOnlyList<Value> args, Func<HeapString, double, Value> op, SourceLocation location, ExecutionContext ctx, IUtf8Provider utf8)
     {
         if (args.Count < 2 || args[0].Kind != ValueKind.String || args[1].Kind != ValueKind.Number)
+        {
+            ctx.Throw("Expected a string and a number argument", location);
             return Value.NullValue;
+        }
         return op(args[0].AsString, args[1].AsNumber);
     }
 

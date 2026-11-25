@@ -52,6 +52,10 @@ internal static class Program
         FrameStackTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Value Accessor Explicit-Failure Tests ===");
+        ValueAccessorTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }

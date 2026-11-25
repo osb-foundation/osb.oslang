@@ -87,16 +87,19 @@ internal sealed class StatementExecutor
                 break;
 
             case Lang.BreakStmt:
-                _ctx.CurrentFlow = ControlFlow.Break;
+                if (_ctx.CurrentFlow == ControlFlow.Normal)
+                    _ctx.CurrentFlow = ControlFlow.Break;
                 break;
 
             case Lang.ContinueStmt:
-                _ctx.CurrentFlow = ControlFlow.Continue;
+                if (_ctx.CurrentFlow == ControlFlow.Normal)
+                    _ctx.CurrentFlow = ControlFlow.Continue;
                 break;
 
             case Lang.ReturnStmt r:
                 _ctx.ReturnValue = r.Value != null ? _interpreter.Evaluate(r.Value) : Value.NullValue;
-                _ctx.CurrentFlow = ControlFlow.Return;
+                if (_ctx.CurrentFlow == ControlFlow.Normal)
+                    _ctx.CurrentFlow = ControlFlow.Return;
                 break;
 
             case Lang.TryCatchStmt t:
