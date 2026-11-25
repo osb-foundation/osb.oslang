@@ -56,6 +56,10 @@ internal static class Program
         ValueAccessorTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Closure Identity Equality Tests (R7) ===");
+        ClosureEqualityTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine($"Results: {_passed} passed, {_failed} failed");
         if (_failed > 0) Environment.Exit(1);
     }

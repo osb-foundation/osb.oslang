@@ -31,6 +31,7 @@ internal static class ValueUtilities
             ValueKind.String => a.AsString.ToString() == b.AsString.ToString(),
             ValueKind.Array => a.AsArray == b.AsArray,
             ValueKind.Object => a.AsObject == b.AsObject,
+            ValueKind.Closure => a.AsClosure == b.AsClosure,
             ValueKind.Enum => a.AsEnum == b.AsEnum,
             ValueKind.EnumSet => a.AsEnumSet == b.AsEnumSet,
             _ => false,

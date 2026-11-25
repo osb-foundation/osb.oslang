@@ -34,9 +34,9 @@
     <Compile Include="..\..\..\..\osbkt\Fmt.cs" Link="osbkt/Fmt.cs" />
   </ItemGroup>
 
-  <!-- Engine.Core sources -->
+  <!-- Engine.Core sources (test-only internals are not compiled into the freestanding host) -->
   <ItemGroup>
-    <Compile Include="..\..\Core\**\*.cs" Link="Engine.Core\%(RecursiveDir)%(Filename)%(Extension)" Exclude="..\..\Core\obj\**\*.cs;..\..\Core\bin\**\*.cs" />
+    <Compile Include="..\..\Core\**\*.cs" Link="Engine.Core\%(RecursiveDir)%(Filename)%(Extension)" Exclude="..\..\Core\obj\**\*.cs;..\..\Core\bin\**\*.cs;..\..\Core\Properties\**\*.cs" />
   </ItemGroup>
 
   <!-- Freestanding entry point -->
