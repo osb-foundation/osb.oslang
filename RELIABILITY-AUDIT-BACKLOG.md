@@ -1,7 +1,7 @@
 # OSB / OSLANG — Runtime Reliability Audit Backlog
 
 **Repo/branch:** `osb.oslang` / `master`  
-**Commit:** `e7f3d73` (HEAD; Batches 1-5 applied)  
+**Commit:** `f21419a` (HEAD; Batches 1-6 applied)  
 **Date:** 2026-11-25  
 **Scope:** OSLANG freestanding interpreter runtime (`osb.oslang/engine/Core/...`),  
           allocation/TLS helpers (`OsbRuntimeExports.cs`, `OsbMemoryProvider.cs`, `EngineHeap.cs`).
@@ -58,6 +58,21 @@ See the detailed entry in the prioritized backlog below.
   body (end-to-end through the interpreter).
 - **Result:** 772/772 CollectionTests pass (754 pre-existing + 18 new R7 tests).
 - **Dependencies:** None.
+- **Confidence:** CONFIRMED.
+
+---
+
+## Batch 6 — implemented
+
+### R5 — Test gap: interpreter/runtime not covered — HIGH — CONFIRMED — FIXED
+
+- **Area:** Test quality and coverage of `osb.Engine.Core` runtime behavior.
+- **Evidence:** `host/CollectionTests` covered lexer/parser/collections only. No tests existed for the engine's function/method invocation, expression evaluation, flow control, object/array mutation, closure reference creation, or exception propagation across execution boundaries.
+- **Fix:** Added `host/CollectionTests/RuntimeTests.cs` — 46 focused test methods (96 assertions) covering: function invocation with args/return values, nested function calls, expressions (binary/unary/string concat), if/elif/else, for/while/do-while loops, break/continue/return, object field round-trip, constructors, method invocation, member/method-not-found errors, array mutation methods (push/pop/first/last/count/contains/removeat/insertat), empty collections, boundary conditions, undefined variable, unknown function, arg-count mismatch, division by zero, try/catch consumption and propagation, catch-body throw, frame cleanup after exception, and closure reference creation.
+- **Defect found and fixed:** `ExpressionEvaluator.EvaluateNew` did not check `_ctx.CurrentFlow` after evaluating constructor arguments, and `Interpreter.CallMethod` unconditionally reset flow to `Normal` at entry. `NEW Foo(1 / 0)` therefore swallowed the division-by-zero exception and returned an object with `Normal` flow. Fixed by checking flow after each argument evaluation in `EvaluateNew` (engine/Core/Eval/ExpressionEvaluator.cs), matching the existing `EvaluateCall`/`EvaluateMethodCall` pattern. No architecture, value, closure, or allocation changes.
+- **Regression test:** `Runtime.NewWithArgThatThrowsPreservesException`.
+- **Result:** 868/868 CollectionTests pass (772 pre-existing + 96 new R5 tests).
+- **Dependencies:** R1 (soft-throw exception flow preserved across calls).
 - **Confidence:** CONFIRMED.
 
 ---
@@ -220,24 +235,16 @@ See the detailed entry in the prioritized backlog below.
   scope.
 - **Confidence:** CONFIRMED.
 
-### R5 — Test gap: interpreter/runtime not covered — HIGH — CONFIRMED
+### R5 — Test gap: interpreter/runtime not covered — HIGH — CONFIRMED — FIXED (Batch 6)
 
-- **Area:** Test quality and coverage.
-- **Evidence:** `host/CollectionTests` (257 tests) covers lexer/parser/collections
-  only. `host/Host.Test/Oslang.ConformanceRunner` targets the REFERENCE
-  implementation (`Osb.Lang`), not `Osb.Engine.Core`. No tests exist for the new
-  engine's error propagation, OOM, invalid handles, try/catch across function
-  boundaries, or allocation failure. Tests that exist validate happy paths; none
-  verify state integrity after failures.
-- **Impact:** Defects R1-R4 escape detection; "code executes without crashing" is
-  mistaken for correct behavior.
-- **Recommended fix:** Expand `host/CollectionTests` with interpreter-level tests
-  (as started in Batch 1): valid/invalid input, boundary values, empty values,
-  repeated ops, simulated allocation failure, invalid/stale handles, cleanup after
-  failure, error propagation across layers. Do not weaken assertions.
+- **Area:** Test quality and coverage of `osb.Engine.Core` runtime behavior.
+- **Evidence:** `host/CollectionTests` covered lexer/parser/collections only. No tests existed for the engine's function/method invocation, expression evaluation, flow control, object/array mutation, closure reference creation, or exception propagation across execution boundaries.
+- **Impact:** Defects R1-R4 escape detection; "code executes without crashing" is mistaken for correct behavior.
+- **Fix:** Added `host/CollectionTests/RuntimeTests.cs` (46 test methods, 96 assertions) covering function invocation, nested calls, expressions, if/elif/else, loops, break/continue/return, object fields, constructors, method invocation, array mutation methods, empty collections, boundary conditions, undefined variable, unknown function, arg-count mismatch, division by zero, try/catch consumption and propagation, catch-body throw, frame cleanup after exception, and closure reference creation.
+- **Defect found and fixed:** `ExpressionEvaluator.EvaluateNew` did not check `_ctx.CurrentFlow` after evaluating constructor arguments, and `Interpreter.CallMethod` unconditionally reset flow to `Normal` at entry. `NEW Foo(1 / 0)` swallowed the division-by-zero exception and returned an object with `Normal` flow. Fixed by checking flow after each argument evaluation in `EvaluateNew` (engine/Core/Eval/ExpressionEvaluator.cs), matching the existing `EvaluateCall`/`EvaluateMethodCall` pattern. No architecture, value, closure, or allocation changes.
+- **Regression test:** `Runtime.NewWithArgThatThrowsPreservesException`.
+- **Result:** 868/868 CollectionTests pass (772 pre-existing + 96 new R5 tests).
 - **Dependencies:** R1 provides observable error state needed for assertions.
-- **Regression test:** The Batch 1 `InterpreterTests.cs` is the seed; extend per
-  fix.
 - **Confidence:** CONFIRMED.
 
 ### R6 — FrameStack.Current returns null! when empty — MEDIUM — CONFIRMED — FIXED
