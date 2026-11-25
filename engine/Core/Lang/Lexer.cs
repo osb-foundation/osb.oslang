@@ -2,6 +2,10 @@ using System;
 using Osb.Engine.Core.Collections;
 using Osb.Engine.Core.Providers;
 
+#if FREESTANDING
+using OsbKT;
+#endif
+
 namespace Osb.Engine.Core.Lang;
 
 /// <summary>
@@ -19,6 +23,24 @@ public partial class Lexer
     private int _column = 1;
     private int _lineStart = 0;
 
+#if FREESTANDING
+    /// <summary>
+    /// Temporary O8.15.1 diagnostic output via Syscall.Write (no stackalloc,
+    /// no string pinning — avoids potential issues deep in the call stack).
+    /// </summary>
+    private static unsafe void Diag(string s)
+    {
+        if (s == null) return;
+        for (int i = 0; i < s.Length; i++)
+        {
+            byte b = (byte)s[i];
+            Syscall.Write(&b, 1);
+        }
+    }
+#else
+    private static void Diag(string s) { }
+#endif
+
     public Lexer(string source, IUtf8Provider? utf8Provider = null)
     {
         _source = source ?? string.Empty;
@@ -31,20 +53,25 @@ public partial class Lexer
     public NodeList<Token> Tokenize()
     {
         var tokens = new NodeList<Token>();
+        Diag("TK_ENTER");
         while (!IsAtEnd)
         {
+            Diag("TK_LOOP");
             tokens.Add(NextToken());
+            Diag("TK_ADDED");
         }
+        Diag("TK_EOF");
         tokens.Add(new Token(TokenType.Eof, "", CurrentLocation));
+        Diag("TK_EXIT");
         return tokens;
     }
 
-    private bool IsAtEnd => _pos >= _source.Length;
+    public bool IsAtEnd => _pos >= _source.Length;
 
     private char Current => IsAtEnd ? '\0' : _source[_pos];
     private char Peek => _pos + 1 >= _source.Length ? '\0' : _source[_pos + 1];
 
-    private SourceLocation CurrentLocation => new(_line, _column, _pos);
+    internal SourceLocation CurrentLocation => new(_line, _column, _pos);
 
     private char PeekAt(int pos) => pos + 1 >= _source.Length ? '\0' : _source[pos + 1];
 
@@ -65,14 +92,16 @@ public partial class Lexer
         return c;
     }
 
-    private Token NextToken()
+    internal Token NextToken()
     {
+        Diag("NT_ENTER");
         var start = CurrentLocation;
         char c = Advance();
 
         // Whitespace (excluding newlines)
         if (c == ' ' || c == '\t' || c == '\r')
         {
+            Diag("NT_WS");
             return NextToken(); // skip and recurse
         }
 
@@ -96,6 +125,7 @@ public partial class Lexer
                 Advance(); // M
                 while (!IsAtEnd && Current != '\n') Advance();
             }
+            Diag("NT_CMNT");
             return NextToken();
         }
 

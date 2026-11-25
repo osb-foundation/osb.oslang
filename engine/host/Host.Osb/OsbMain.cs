@@ -233,7 +233,8 @@ internal static unsafe class OsbMain
             Syscall.Exit(1);
         }
 
-        // Parse arguments: first arg is the program name, second is the script path
+        // Parse arguments: first token is the script source path; anything after
+        // the first space is passed to the script as application arguments.
         string argsStr = BytesToString(argsBuffer, argsLen);
         string scriptPath = ParseScriptPath(argsStr);
         
@@ -245,6 +246,7 @@ internal static unsafe class OsbMain
 
         // Read source file
         string source = ReadSourceFile(scriptPath);
+        Syscall.PrintString("SRC$");
         if (source == null)
         {
             Syscall.PrintString("Error: Cannot read source file '");
@@ -254,20 +256,54 @@ internal static unsafe class OsbMain
         }
 
         // Set up Engine.Core
+        Syscall.PrintString("B4OMP$");
         var provider = new Osb.Engine.Core.Providers.OsbMemoryProvider((IntPtr)HeapBase, HeapSize);
+        Syscall.PrintString("AFOMP$");
+        Syscall.PrintString("OMP$");
+        Syscall.PrintString("B4EH$");
         var heap = new Osb.Engine.Core.Heap.EngineHeap(provider);
+        Syscall.PrintString("AFEH$");
+        Syscall.PrintString("EH$");
+        Syscall.PrintString("HO$");
         var host = new OsbHostApi();
+        Syscall.PrintString("AFHO$");
+        Syscall.PrintString("MT$");
         var math = new FreestandingMathProvider();
+        Syscall.PrintString("TI$");
         var time = new FreestandingTimeProvider();
+        Syscall.PrintString("RA$");
         var random = new FreestandingRandomProvider();
+        Syscall.PrintString("U8$");
         var utf8 = new FreestandingUtf8ProviderAlias();
 
         try
         {
+            Syscall.PrintString("B4LEX$");
             var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
-            var tokens = lexer.Tokenize();
+            Syscall.PrintString("AFLEX$");
+            Syscall.PrintString("AFLEX2");
+            Syscall.PrintString("NL_PRE");
+            var tokens = new Osb.Engine.Core.Collections.NodeList<Osb.Engine.Core.Lang.Token>();
+            Syscall.PrintString("NL_POST");
+            Syscall.PrintString("IAE_PRE");
+            bool atEnd = lexer.IsAtEnd;
+            Syscall.PrintString("IAE_POST");
+            while (!atEnd)
+            {
+                Syscall.PrintString("M_PRE");
+                var tok = lexer.NextToken();
+                Syscall.PrintString("M_POST");
+                tokens.Add(tok);
+                Syscall.PrintString("M_ADD");
+                atEnd = lexer.IsAtEnd;
+                Syscall.PrintString("IAE_POST2");
+            }
+            Syscall.PrintString("M_EOF");
+            tokens.Add(new Osb.Engine.Core.Lang.Token(Osb.Engine.Core.Lang.TokenType.Eof, "", lexer.CurrentLocation));
+            Syscall.PrintString("LEX$");
             var parser = new Osb.Engine.Core.Lang.Parser(tokens);
             var program = parser.Parse();
+            Syscall.PrintString("PAR$");
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
             interpreter.Execute(program);
@@ -298,21 +334,29 @@ internal static unsafe class OsbMain
 
     private static string ParseScriptPath(string args)
     {
-        // The kernel passes "<sourcePath> <appArgs>" (see osb.shell External.SpawnOslang):
+        // The kernel passes "<sourcePath> <appArgs>" (see osb.shell External.Run):
         // the first token is the script source path, the remainder is the app's ARGS.
-        // (An earlier version skipped the first token as a program name, which broke the
-        // single-token "<script>" form the shell actually passes.)
         int i = 0;
         while (i < args.Length && args[i] == ' ') i++;
         int start = i;
         while (i < args.Length && args[i] != ' ' && args[i] != '\r' && args[i] != '\n') i++;
         if (start >= i) return null;
-        return args.Substring(start, i - start);
+
+        // Build the script-path string directly from the argument bytes. Using
+        // args.Substring(start, i - start) routes through System.String.Substring,
+        // which in this freestanding MiniCoreLib goes through FastAllocateString ->
+        // RhNewString (the O8.14 RuntimeExport) and returns an empty string, while
+        // BytesToString -> new string(char*, int) works correctly.
+        var buf = stackalloc byte[260];
+        int n = i - start;
+        for (int k = 0; k < n; k++) buf[k] = (byte)args[start + k];
+        return BytesToString(buf, n);
     }
 
     private static string ReadSourceFile(string path)
     {
         int handle = Syscall.Open(path);
+        Syscall.PrintString("OPN$");
         if (handle < 0)
         {
             return null;
@@ -327,6 +371,7 @@ internal static unsafe class OsbMain
         while (true)
         {
             int bytesRead = Syscall.Read(handle, buffer, ChunkSize);
+            Syscall.PrintString("RED$");
             if (bytesRead <= 0) break;
 
             // Narrow bytes to chars (ASCII/UTF-8)
@@ -337,9 +382,14 @@ internal static unsafe class OsbMain
         }
 
         Syscall.Close(handle);
+        Syscall.PrintString("CLS$");
 
         if (contentLen == 0) return string.Empty;
-        return new string(contentChars, 0, contentLen);
+        var chars = stackalloc char[contentLen];
+        for (int i = 0; i < contentLen; i++) chars[i] = contentChars[i];
+        var result = new string(chars, contentLen);
+        Syscall.PrintString("DON$");
+        return result;
     }
 
     private static string BytesToString(byte* buf, int len)
