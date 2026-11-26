@@ -86,16 +86,25 @@ namespace Osb.OSLang.Runtime
         }
 
         // RhpNewFast(MethodTable* mt): size = mt->BaseSize (uint32 @ +4).
+        // The real helper (portable.cpp RhpNewFast) stamps the object's MethodTable
+        // at +0 (set_EEType); the generated `new` code relies on the helper for this,
+        // so the stub must write it too. Without it the object header MT is NULL.
         [System.Runtime.RuntimeExport("RhpNewFast")]
         public static void* RhpNewFast(void* mt)
         {
             byte* m = (byte*)mt;
             ulong baseSize = *(uint*)(m + 4);
-            return BumpAlloc(baseSize);
+            void* obj = BumpAlloc(baseSize);
+            if (obj != null) *(void**)obj = mt;
+            return obj;
         }
 
         // RhpNewArrayFast(MethodTable* mt, int length):
         //   size = mt->BaseSize + length * mt->ComponentSize (uint16 @ +0).
+        // The real helper (portable.cpp RhpNewArrayFast) also stamps the MethodTable
+        // at +0 and the element count at +8 (Array::m_Length, uint32). The generated
+        // `new T[N]` code relies on the helper for both, so the stub must set them;
+        // otherwise every array reports Length == 0 and the engine breaks.
         [System.Runtime.RuntimeExport("RhpNewArrayFast")]
         public static void* RhpNewArrayFast(void* mt, int length)
         {
@@ -103,7 +112,13 @@ namespace Osb.OSLang.Runtime
             ulong baseSize = *(uint*)(m + 4);
             ulong compSize = *(ushort*)m;
             ulong size = baseSize + (ulong)length * compSize;
-            return BumpAlloc(size);
+            void* obj = BumpAlloc(size);
+            if (obj != null)
+            {
+                *(void**)obj = mt;
+                *(uint*)((byte*)obj + 8) = (uint)length;
+            }
+            return obj;
         }
 
         // RhpNewPtrArrayFast(MethodTable* mt, int length): == RhpNewArrayFast.

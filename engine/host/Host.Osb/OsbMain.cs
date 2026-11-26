@@ -1,8 +1,7 @@
 using OsbKT;
 
 /// <summary>
-/// Freestanding OSB Ring3 host API implementation using osbkt syscalls.
-/// No BCL dependencies - uses MiniCoreLib String and osbkt console I/O.
+/// Freestanding OSB Ring3 host API (osbkt syscalls); no BCL, MiniCoreLib String.
 /// </summary>
 internal sealed unsafe class OsbHostApi : Osb.Engine.Core.Host.IHostApi
 {
@@ -209,13 +208,14 @@ internal sealed unsafe class FreestandingUtf8ProviderAlias : Osb.Engine.Core.Pro
 }
 
 /// <summary>
-/// Freestanding OSLANG.EXE entry point.
-/// Reads command-line args, loads source file, executes through Engine.Core.
+/// Freestanding OSLANG.EXE entry: read args, load source, execute via Engine.Core.
 /// </summary>
 internal static unsafe class OsbMain
 {
-    private const ulong HeapBase = 0x2108000;
-    private const ulong HeapLimit = 0x2200000;
+    // Ring 3 heap = the kernel-designated process heap [UserTlsEnd, UserTlsHeapEnd)
+    // (Scheduler.InitTaskTls); the former M2 region overlapped the TLS area (M3).
+    private const ulong HeapBase = 0x2180000;
+    private const ulong HeapLimit = 0x21FFFF0;
     private const int HeapSize = (int)(HeapLimit - HeapBase);
 
     public static void Main()
@@ -246,7 +246,6 @@ internal static unsafe class OsbMain
 
         // Read source file
         string source = ReadSourceFile(scriptPath);
-        Syscall.PrintString("SRC$");
         if (source == null)
         {
             Syscall.PrintString("Error: Cannot read source file '");
@@ -256,85 +255,28 @@ internal static unsafe class OsbMain
         }
 
         // Set up Engine.Core
-        Syscall.PrintString("B4OMP$");
         var provider = new Osb.Engine.Core.Providers.OsbMemoryProvider((IntPtr)HeapBase, HeapSize);
-        Syscall.PrintString("AFOMP$");
-        Syscall.PrintString("OMP$");
-        Syscall.PrintString("B4EH$");
         var heap = new Osb.Engine.Core.Heap.EngineHeap(provider);
-        Syscall.PrintString("AFEH$");
-        Syscall.PrintString("EH$");
-        Syscall.PrintString("HO$");
         var host = new OsbHostApi();
-        Syscall.PrintString("AFHO$");
-        Syscall.PrintString("MT$");
         var math = new FreestandingMathProvider();
-        Syscall.PrintString("TI$");
         var time = new FreestandingTimeProvider();
-        Syscall.PrintString("RA$");
         var random = new FreestandingRandomProvider();
-        Syscall.PrintString("U8$");
         var utf8 = new FreestandingUtf8ProviderAlias();
 
         try
         {
-            // TEMPORARY O8.15.1 Probe G: isolate StringMap/keyword static init
-            Syscall.PrintString("KW_PRE");
-            // Probe 1: does new string[8] (first array-of-ref in StringMap ctor) fault?
-            string[] arr = new string[8];
-            Syscall.PrintString("ARR_OK");
-            // Probe 2: new TokenType[8] (value-type szarray like Token[])
-            Osb.Engine.Core.Lang.TokenType[] tarr = new Osb.Engine.Core.Lang.TokenType[8];
-            Syscall.PrintString("TARR_OK");
-            // Probe 3: new bool[8]
-            bool[] barr = new bool[8];
-            Syscall.PrintString("BARR_OK");
-            // Probe 3b: StringComparer.OrdinalIgnoreCase (triggers StringComparer cctor + object alloc)
-            var sc = System.StringComparer.OrdinalIgnoreCase;
-            Syscall.PrintString("SC_OK");
-            // Probe 3c: string literal Length
-            int l = "USING".Length;
-            Syscall.PrintString("LEN_OK");
-            // Probe 3d: string literal indexer x[0]
-            char c = "USING"[0];
-            Syscall.PrintString("IDX_OK");
-            // Probe 3e: string.Equals
-            bool e = "AND".Equals("USING");
-            Syscall.PrintString("EQ_OK");
-            // Probe 4: Keyword static ctor + lookup
-            Osb.Engine.Core.Lang.TokenType kt;
-            bool r1 = Osb.Engine.Core.Lang.Keywords.TryGetKeyword("USING", out kt);
-            Syscall.PrintString(r1 ? "KW1_OK" : "KW1_NO");
-            bool r2 = Osb.Engine.Core.Lang.Keywords.TryGetKeyword("FOO", out kt);
-            Syscall.PrintString(r2 ? "KW2_OK" : "KW2_NO");
-            Syscall.PrintString("KW_POST");
-
-            Syscall.PrintString("B4LEX$");
             var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
-            Syscall.PrintString("AFLEX$");
-            Syscall.PrintString("AFLEX2");
-            Syscall.PrintString("NL_PRE");
             var tokens = new Osb.Engine.Core.Collections.NodeList<Osb.Engine.Core.Lang.Token>();
-            Syscall.PrintString("NL_POST");
-            Syscall.PrintString("IAE_PRE");
             bool atEnd = lexer.IsAtEnd;
-            Syscall.PrintString("IAE_POST");
             while (!atEnd)
             {
-                Syscall.PrintString("M_PRE");
-                var tok = lexer.NextToken();
-                Syscall.PrintString("M_POST");
-                tokens.Add(tok);
-                Syscall.PrintString("M_ADD");
+                tokens.Add(lexer.NextToken());
                 atEnd = lexer.IsAtEnd;
-                Syscall.PrintString("IAE_POST2");
             }
-            Syscall.PrintString("M_EOF");
             tokens.Add(new Osb.Engine.Core.Lang.Token(Osb.Engine.Core.Lang.TokenType.Eof, "", lexer.CurrentLocation));
-            Syscall.PrintString("LEX$");
+
             var parser = new Osb.Engine.Core.Lang.Parser(tokens);
             var program = parser.Parse();
-            Syscall.PrintString("PAR$");
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
             interpreter.Execute(program);
@@ -394,7 +336,6 @@ internal static unsafe class OsbMain
     private static string ReadSourceFile(string path)
     {
         int handle = Syscall.Open(path);
-        Syscall.PrintString("OPN$");
         if (handle < 0)
         {
             return null;
@@ -409,7 +350,6 @@ internal static unsafe class OsbMain
         while (true)
         {
             int bytesRead = Syscall.Read(handle, buffer, ChunkSize);
-            Syscall.PrintString("RED$");
             if (bytesRead <= 0) break;
 
             // Narrow bytes to chars (ASCII/UTF-8)
@@ -420,13 +360,11 @@ internal static unsafe class OsbMain
         }
 
         Syscall.Close(handle);
-        Syscall.PrintString("CLS$");
 
         if (contentLen == 0) return string.Empty;
         var chars = stackalloc char[contentLen];
         for (int i = 0; i < contentLen; i++) chars[i] = contentChars[i];
         var result = new string(chars, contentLen);
-        Syscall.PrintString("DON$");
         return result;
     }
 

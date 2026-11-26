@@ -1,0 +1,3 @@
+FUNCTION MAIN()
+    PRINT "Hello, World!"
+END FUNCTION

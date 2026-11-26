@@ -2,10 +2,6 @@ using System;
 using Osb.Engine.Core.Collections;
 using Osb.Engine.Core.Providers;
 
-#if FREESTANDING
-using OsbKT;
-#endif
-
 namespace Osb.Engine.Core.Lang;
 
 /// <summary>
@@ -25,18 +21,10 @@ public partial class Lexer
 
 #if FREESTANDING
     /// <summary>
-    /// Temporary O8.15.1 diagnostic output via Syscall.Write (no stackalloc,
-    /// no string pinning — avoids potential issues deep in the call stack).
+    /// O8.15.1 temporary diagnostic (now resolved). Retained as a no-op so the
+    /// call sites stay intact without emitting non-contractual marker output.
     /// </summary>
-    private static unsafe void Diag(string s)
-    {
-        if (s == null) return;
-        for (int i = 0; i < s.Length; i++)
-        {
-            byte b = (byte)s[i];
-            Syscall.Write(&b, 1);
-        }
-    }
+    private static void Diag(string s) { }
 #else
     private static void Diag(string s) { }
 #endif
