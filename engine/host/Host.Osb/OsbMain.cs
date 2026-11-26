@@ -224,6 +224,13 @@ internal static unsafe class OsbMain
         OsbNative.osb_tls_set_alloc(HeapBase);
         OsbNative.osb_tls_set_limit(HeapLimit);
 
+        // Establish NativeAOT GC-static base pointers. ILC emits
+        // __GCSTATICS_<Type> placeholders that the normal runtime patches
+        // to point at zeroed GC-static storage; the freestanding path never
+        // runs that runtime, so we establish them here before any reference
+        // type static field (e.g. Keywords._map) is accessed.
+        OsbNative.osb_gcstatics_init();
+
         // Get command-line arguments
         var argsBuffer = stackalloc byte[260];
         int argsLen = Syscall.GetArgs(argsBuffer, 260);
@@ -397,5 +404,8 @@ internal static unsafe class OsbMain
 
         [System.Runtime.InteropServices.DllImport("osbnative")]
         public static extern void osb_tls_set_limit(ulong v);
+
+        [System.Runtime.InteropServices.DllImport("osbnative")]
+        public static extern void osb_gcstatics_init();
     }
 }

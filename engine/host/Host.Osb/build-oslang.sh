@@ -40,16 +40,17 @@ echo "[2/5] ilc -> OSLANG.o ..."
     -O -g --directpinvoke:osbnative \
     --map "$OBJ/OSLANG.map"
 
-echo "[3/5] assemble crt0.S + osb_tls_raw.S ..."
+echo "[3/5] assemble crt0.S + osb_tls_raw.S + gcstatics.S ..."
 gcc -c -nostdlib -ffreestanding -o "$OBJ/userspace.o" "$OSB_ROOT/osbkt/crt0.S"
 gcc -c -nostdlib -ffreestanding -o "$OBJ/osb_tls_raw.o" "$ROOT/osbnative/osb_tls_raw.S"
+gcc -c -nostdlib -ffreestanding -o "$OBJ/gcstatics.o" "$ROOT/osbnative/gcstatics.S"
 
 echo "[4/5] link OSLANG.elf ..."
 # --unresolved-symbols=ignore-all matches the committed baseline: the only
 # unresolved symbol is `fmod` (a pre-existing freestanding dependency on libm
 # that is outside O8.14 scope; see the O8.14 report).
 ld.lld -T "$OSB_ROOT/osbkt/user.ld" -o "$OBJ/OSLANG.elf" \
-    "$OBJ/userspace.o" "$OBJ/OSLANG.o" "$OBJ/osb_tls_raw.o" \
+    "$OBJ/userspace.o" "$OBJ/OSLANG.o" "$OBJ/osb_tls_raw.o" "$OBJ/gcstatics.o" \
     --no-relax \
     --defsym="osb_startup=OSLANG__Module___StartupCodeMain" \
     --unresolved-symbols=ignore-all
