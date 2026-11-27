@@ -1,6 +1,12 @@
 ' OSLANG variable round-trip + numeric formatting test for freestanding NativeAOT.
-' Verifies ValueMap storage/retrieval (string/number/boolean variables) and
+' Verifies ValueMap storage/retrieval (string/number/boolean/enum variables) and
 ' Double.ToString() formatting (integers, fractions, negatives, arithmetic).
+ENUM Color
+    RED
+    GREEN
+    BLUE
+END
+
 FUNCTION MAIN()
     PRINT "=== String variable test ==="
     s = "hello world"
@@ -14,6 +20,10 @@ FUNCTION MAIN()
     b = TRUE
     PRINT b
 
+    PRINT "=== Enum variable test ==="
+    c = Color.GREEN
+    PRINT c
+
     PRINT "=== String literal test ==="
     PRINT "literal string"
 
@@ -22,6 +32,9 @@ FUNCTION MAIN()
 
     PRINT "=== Boolean literal test ==="
     PRINT TRUE
+
+    PRINT "=== Enum literal test ==="
+    PRINT Color.BLUE
 
     PRINT "=== Fractional number test ==="
     PRINT 3.25

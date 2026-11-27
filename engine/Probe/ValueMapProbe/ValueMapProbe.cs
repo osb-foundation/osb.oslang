@@ -96,7 +96,11 @@ internal static unsafe class ValueMapProbe
         var arr = heap.AllocArray(3);
         map["a"] = Value.Array(arr);
 
-        Check("count==6", map.Count == 6);
+        // Enum tests (immediate type - heapRef == null)
+        map["e1"] = Value.Enum(0, 1);   // Color.RED
+        map["e2"] = Value.Enum(2, 5);   // Different enum type/member
+
+        Check("count==8", map.Count == 8);
 
         Value v;
         v = map.GetValue("n", out bool f1);
@@ -112,6 +116,14 @@ internal static unsafe class ValueMapProbe
         v = map.GetValue("a", out bool f6);
         Check("a Array identity", f6 && v.Kind == ValueKind.Array && RefEq(v.AsArray, arr));
 
+        // Enum retrieval tests
+        v = map.GetValue("e1", out bool f7);
+        Check("e1 Enum kind", f7 && v.Kind == ValueKind.Enum);
+        Check("e1 Enum indices (0,1)", f7 && v.AsEnum.TypeIndex == 0 && v.AsEnum.MemberIndex == 1);
+        v = map.GetValue("e2", out bool f8);
+        Check("e2 Enum kind", f8 && v.Kind == ValueKind.Enum);
+        Check("e2 Enum indices (2,5)", f8 && v.AsEnum.TypeIndex == 2 && v.AsEnum.MemberIndex == 5);
+
         // ---- GetValue immediately after the indexer (the historical failure) ----
         Value _ = map["n"];
         v = map.GetValue("n", out bool g1);
@@ -119,6 +131,10 @@ internal static unsafe class ValueMapProbe
         Value _2 = map["s"];
         v = map.GetValue("s", out bool g2);
         Check("s after indexer", g2 && v.Kind == ValueKind.String && RefEq(v.AsString, hs1));
+        // Enum after indexer
+        Value _3 = map["e1"];
+        v = map.GetValue("e1", out bool g3);
+        Check("e1 after indexer", g3 && v.Kind == ValueKind.Enum && v.AsEnum.TypeIndex == 0 && v.AsEnum.MemberIndex == 1);
 
         // ---- Repeated reads ----
         bool repeatOk = true;
@@ -128,6 +144,8 @@ internal static unsafe class ValueMapProbe
             if (!r1 || v.AsNumber != 42) { repeatOk = false; break; }
             v = map.GetValue("s", out bool r2);
             if (!r2 || !RefEq(v.AsString, hs1)) { repeatOk = false; break; }
+            v = map.GetValue("e1", out bool r3);
+            if (!r3 || v.Kind != ValueKind.Enum || v.AsEnum.TypeIndex != 0 || v.AsEnum.MemberIndex != 1) { repeatOk = false; break; }
         }
         Check("100x repeated reads", repeatOk);
 
@@ -138,10 +156,13 @@ internal static unsafe class ValueMapProbe
         map["s"] = Value.String(hs0);
         v = map.GetValue("s", out bool p2);
         Check("replace s identity hs0", p2 && RefEq(v.AsString, hs0));
+        map["e1"] = Value.Enum(3, 7);
+        v = map.GetValue("e1", out bool p3);
+        Check("replace e1 -> Enum(3,7)", p3 && v.Kind == ValueKind.Enum && v.AsEnum.TypeIndex == 3 && v.AsEnum.MemberIndex == 7);
 
         // ---- Grow / rehash with unrelated insertions ----
         for (int i = 0; i < 50; i++) map["k" + i] = Value.Number(i);
-        Check("count after grow == 56", map.Count == 56);
+        Check("count after grow == 58", map.Count == 58);
         v = map.GetValue("n", out bool q1);
         Check("n survives grow (99)", q1 && v.AsNumber == 99);
         v = map.GetValue("s", out bool q2);
@@ -150,6 +171,10 @@ internal static unsafe class ValueMapProbe
         Check("a survives grow", q3 && v.Kind == ValueKind.Array && RefEq(v.AsArray, arr));
         v = map.GetValue("k37", out bool q4);
         Check("k37 == 37", q4 && v.AsNumber == 37);
+        v = map.GetValue("e1", out bool q5);
+        Check("e1 survives grow (3,7)", q5 && v.Kind == ValueKind.Enum && v.AsEnum.TypeIndex == 3 && v.AsEnum.MemberIndex == 7);
+        v = map.GetValue("e2", out bool q6);
+        Check("e2 survives grow (2,5)", q6 && v.Kind == ValueKind.Enum && v.AsEnum.TypeIndex == 2 && v.AsEnum.MemberIndex == 5);
 
         // ---- Missing key ----
         v = map.GetValue("nope", out bool m1);

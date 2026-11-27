@@ -22,6 +22,9 @@ public sealed class ValueMap
     // so kind bits are stored in bool[] arrays which round-trip reliably.
     private bool[] _kindBit0;
     private bool[] _kindBit1;
+    // Full ValueKind for immediate types (heapRef == null). Preserves Enum and
+    // any future immediate kinds that don't fit in the two-bit representation.
+    private byte[] _kindTags;
     private bool[] _occupied;
     private bool[] _deleted;
     private int _count;
@@ -39,6 +42,8 @@ public sealed class ValueMap
         // Kind bits: only meaningful for immediate types (heapRef == null).
         _kindBit0 = new bool[capacity];
         _kindBit1 = new bool[capacity];
+        // Full kind tags for immediate types.
+        _kindTags = new byte[capacity];
         _occupied = new bool[capacity];
         _deleted = new bool[capacity];
         _count = 0;
@@ -123,6 +128,7 @@ public sealed class ValueMap
             System.Array.Clear(_heapRefs, 0, _heapRefs.Length);
             System.Array.Clear(_kindBit0, 0, _kindBit0.Length);
             System.Array.Clear(_kindBit1, 0, _kindBit1.Length);
+            System.Array.Clear(_kindTags, 0, _kindTags.Length);
             System.Array.Clear(_occupied, 0, _occupied.Length);
             System.Array.Clear(_deleted, 0, _deleted.Length);
             _count = 0;
@@ -218,6 +224,9 @@ public sealed class ValueMap
                 // resolved from heapRef type on read, so bits stay false.
                 _kindBit0[target] = heapRef == null && kind == ValueKind.Boolean;
                 _kindBit1[target] = heapRef == null && kind == ValueKind.Number;
+                // Store full ValueKind for immediate types to preserve Enum
+                // and other immediate kinds beyond the two-bit representation.
+                _kindTags[target] = heapRef == null ? (byte)kind : (byte)0;
                 _occupied[target] = true;
                 _deleted[target] = false;
                 if (firstDeleted >= 0) _deletedCount--;
@@ -232,6 +241,7 @@ public sealed class ValueMap
                 // Update kind tag bits on overwrite.
                 _kindBit0[probe] = heapRef == null && kind == ValueKind.Boolean;
                 _kindBit1[probe] = heapRef == null && kind == ValueKind.Number;
+                _kindTags[probe] = heapRef == null ? (byte)kind : (byte)0;
                 return;
             }
 
@@ -262,17 +272,27 @@ public sealed class ValueMap
             else if (h is HeapNativeFunction) k = ValueKind.NativeFunction;
             else k = ValueKind.String;
         }
-        else if (_kindBit0[index])
-        {
-            k = ValueKind.Boolean;
-        }
-        else if (_kindBit1[index])
-        {
-            k = ValueKind.Number;
-        }
         else
         {
-            k = ValueKind.Null;
+            // For immediate types, read the full ValueKind from _kindTags.
+            // Falls back to bool bit logic for backward compatibility.
+            byte tag = _kindTags[index];
+            if (tag != 0)
+            {
+                k = (ValueKind)tag;
+            }
+            else if (_kindBit0[index])
+            {
+                k = ValueKind.Boolean;
+            }
+            else if (_kindBit1[index])
+            {
+                k = ValueKind.Number;
+            }
+            else
+            {
+                k = ValueKind.Null;
+            }
         }
 
         return Value.Make(k, p, h);
@@ -286,6 +306,7 @@ public sealed class ValueMap
         var oldHeapRefs = _heapRefs;
         var oldKindBit0 = _kindBit0;
         var oldKindBit1 = _kindBit1;
+        var oldKindTags = _kindTags;
         var oldOccupied = _occupied;
         var oldDeleted = _deleted;
 
@@ -294,6 +315,7 @@ public sealed class ValueMap
         _heapRefs = new object[newCapacity];
         _kindBit0 = new bool[newCapacity];
         _kindBit1 = new bool[newCapacity];
+        _kindTags = new byte[newCapacity];
         _occupied = new bool[newCapacity];
         _deleted = new bool[newCapacity];
         _count = 0;
@@ -318,17 +340,25 @@ public sealed class ValueMap
                     else if (h is HeapNativeFunction) k = ValueKind.NativeFunction;
                     else k = ValueKind.String;
                 }
-                else if (oldKindBit0[i])
-                {
-                    k = ValueKind.Boolean;
-                }
-                else if (oldKindBit1[i])
-                {
-                    k = ValueKind.Number;
-                }
                 else
                 {
-                    k = ValueKind.Null;
+                    byte tag = oldKindTags[i];
+                    if (tag != 0)
+                    {
+                        k = (ValueKind)tag;
+                    }
+                    else if (oldKindBit0[i])
+                    {
+                        k = ValueKind.Boolean;
+                    }
+                    else if (oldKindBit1[i])
+                    {
+                        k = ValueKind.Number;
+                    }
+                    else
+                    {
+                        k = ValueKind.Null;
+                    }
                 }
                 Insert(oldKeys[i], oldPayloads[i], oldHeapRefs[i], k);
             }
