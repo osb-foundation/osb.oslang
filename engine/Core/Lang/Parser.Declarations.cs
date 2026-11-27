@@ -15,24 +15,10 @@ public partial class Parser
 
     private FunctionDecl ParseFunction()
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: start\r\n");
-#endif
         var start = Current.Location;
         Advance(); // FUNCTION
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after Advance FUNCTION\r\n");
-#endif
         var name = ExpectIdentifier("Expected function name after FUNCTION");
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after ExpectIdentifier, name=");
-        OsbKT.Syscall.PrintString(name);
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         Expect(TokenType.LParen, "Expected '(' after function name");
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after Expect LParen\r\n");
-#endif
 
         var parameters = new NodeList<ParameterDecl>();
         if (!Check(TokenType.RParen))
@@ -45,24 +31,11 @@ public partial class Parser
             }
         }
         Expect(TokenType.RParen, "Expected ')' after parameter list");
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after Expect RParen\r\n");
-#endif
         Expect(TokenType.Newline, "Expected end of line after function header");
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after Expect Newline\r\n");
-#endif
 
         var body = ParseBlockUntil(TokenType.End);
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: after ParseBlockUntil\r\n");
-#endif
         Expect(TokenType.End, "Expected END to close function");
         if (Check(TokenType.Function)) Advance(); // optional END FUNCTION
-
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseFunction: end\r\n");
-#endif
         return new FunctionDecl(name, parameters, body, start);
     }
 
@@ -328,29 +301,13 @@ public partial class Parser
 
     private NodeList<Stmt> ParseBlockUntil(TokenType terminator)
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseBlockUntil: start, terminator=");
-        OsbKT.Syscall.PrintString(terminator.ToString());
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         var statements = new NodeList<Stmt>();
         while (!Check(terminator) && !IsAtEnd)
         {
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: ParseBlockUntil: loop, Current=");
-            OsbKT.Syscall.PrintString(Current.Type.ToString());
-            OsbKT.Syscall.PrintString("\r\n");
-#endif
             SkipNewlines();
             if (Check(terminator) || IsAtEnd) break;
             statements.Add(ParseStatement());
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: ParseBlockUntil: after ParseStatement\r\n");
-#endif
         }
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParseBlockUntil: end\r\n");
-#endif
         return statements;
     }
 

@@ -17,137 +17,27 @@ public partial class Parser
     public Parser(IReadOnlyList<Token> tokens) 
     {
         _tokens = tokens;
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Parser ctor: tokens.Count=");
-        OsbKT.Syscall.PrintString(tokens.Count.ToString());
-        OsbKT.Syscall.PrintString(" tokens[0].Type=");
-        var firstType = tokens[0].Type;
-        if (firstType == TokenType.Function)
-        {
-            OsbKT.Syscall.PrintString("FUNCTION");
-        }
-        else if (firstType == TokenType.Print)
-        {
-            OsbKT.Syscall.PrintString("PRINT");
-        }
-        else if (firstType == TokenType.End)
-        {
-            OsbKT.Syscall.PrintString("END");
-        }
-        else if (firstType == TokenType.Enum)
-        {
-            OsbKT.Syscall.PrintString("ENUM");
-        }
-        else
-        {
-            OsbKT.Syscall.PrintString("OTHER");
-        }
-        OsbKT.Syscall.PrintString("\r\n");
-        
-        // Debug: print all tokens
-        OsbKT.Syscall.PrintString("DBG: Parser ctor: all tokens:\r\n");
-        for (int i = 0; i < tokens.Count; i++)
-        {
-            OsbKT.Syscall.PrintString("  [");
-            OsbKT.Syscall.PrintString(i.ToString());
-            OsbKT.Syscall.PrintString("] Type=");
-            var t = tokens[i].Type;
-            if (t == TokenType.Function) OsbKT.Syscall.PrintString("FUNCTION");
-            else if (t == TokenType.Print) OsbKT.Syscall.PrintString("PRINT");
-            else if (t == TokenType.End) OsbKT.Syscall.PrintString("END");
-            else if (t == TokenType.Enum) OsbKT.Syscall.PrintString("ENUM");
-            else if (t == TokenType.Eof) OsbKT.Syscall.PrintString("EOF");
-            else if (t == TokenType.Newline) OsbKT.Syscall.PrintString("NEWLINE");
-            else if (t == TokenType.Identifier) OsbKT.Syscall.PrintString("IDENTIFIER");
-            else OsbKT.Syscall.PrintString("OTHER");
-            OsbKT.Syscall.PrintString(" Text='");
-            OsbKT.Syscall.PrintString(tokens[i].Text);
-            OsbKT.Syscall.PrintString("'\r\n");
-        }
-#endif
     }
 
     public Program Parse()
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Parse: _tokens.Count=");
-        OsbKT.Syscall.PrintString(_tokens.Count.ToString());
-        OsbKT.Syscall.PrintString(" _tokens[0].Type=");
-        var firstType = _tokens[0].Type;
-        if (firstType == TokenType.Function)
-        {
-            OsbKT.Syscall.PrintString("FUNCTION");
-        }
-        else if (firstType == TokenType.Print)
-        {
-            OsbKT.Syscall.PrintString("PRINT");
-        }
-        else if (firstType == TokenType.End)
-        {
-            OsbKT.Syscall.PrintString("END");
-        }
-        else if (firstType == TokenType.Enum)
-        {
-            OsbKT.Syscall.PrintString("ENUM");
-        }
-        else
-        {
-            OsbKT.Syscall.PrintString("OTHER");
-        }
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         var functions = new NodeList<FunctionDecl>();
         var classes = new NodeList<ClassDecl>();
         var interfaces = new NodeList<InterfaceDecl>();
         var enums = new NodeList<EnumDecl>();
         var usings = new NodeList<UsingDecl>();
         var events = new NodeList<EventDecl>();
-
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Parse: entering while loop\r\n");
-#endif
         while (!IsAtEnd && Current.Type != TokenType.Eof)
         {
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: Parse: loop iteration, Current=");
-            // Print token type by comparison since ToString() is broken
-            if (Current.Type == TokenType.Function)
-            {
-                OsbKT.Syscall.PrintString("FUNCTION");
-            }
-            else if (Current.Type == TokenType.Print)
-            {
-                OsbKT.Syscall.PrintString("PRINT");
-            }
-            else if (Current.Type == TokenType.End)
-            {
-                OsbKT.Syscall.PrintString("END");
-            }
-            else if (Current.Type == TokenType.Enum)
-            {
-                OsbKT.Syscall.PrintString("ENUM");
-            }
-            else
-            {
-                OsbKT.Syscall.PrintString("OTHER");
-            }
-            OsbKT.Syscall.PrintString("\r\n");
-#endif
             SkipNewlines();
             if (IsAtEnd || Current.Type == TokenType.Eof) break;
 
             if (Current.Type == TokenType.Using)
             {
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: Parse: calling ParseUsing\r\n");
-#endif
                 usings.Add(ParseUsing());
             }
             else if (Current.Type == TokenType.Function)
             {
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: Parse: calling ParseFunction\r\n");
-#endif
                 functions.Add(ParseFunction());
             }
             else if (Current.Type == TokenType.Class)
@@ -172,9 +62,6 @@ public partial class Parser
             }
         }
 
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Parse: exiting while loop\r\n");
-#endif
         return new Program(functions, classes, interfaces, enums, usings, events);
     }
 
@@ -233,13 +120,7 @@ public partial class Parser
 
     private T MakePrimary<T>(T expr) where T : Expr
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: MakePrimary: before Advance\r\n");
-#endif
         Advance();
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: MakePrimary: after Advance\r\n");
-#endif
         return expr;
     }
 

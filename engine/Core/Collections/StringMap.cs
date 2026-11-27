@@ -57,17 +57,7 @@ public sealed class StringMap<T>
     public bool TryGetValue(string key, out T value)
     {
         if (key == null) { value = default!; return false; }
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: StringMap.TryGetValue: key=");
-        OsbKT.Syscall.PrintString(key);
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         int index = FindIndex(key);
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: StringMap.TryGetValue: index=");
-        OsbKT.Syscall.PrintString(index.ToString());
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         if (index >= 0)
         {
             value = _values[index];
@@ -152,15 +142,6 @@ public sealed class StringMap<T>
 
     private int FindIndex(string key)
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: StringMap.FindIndex: key=");
-        OsbKT.Syscall.PrintString(key);
-        OsbKT.Syscall.PrintString(" hash=");
-        OsbKT.Syscall.PrintString(key.GetHashCode().ToString());
-        OsbKT.Syscall.PrintString(" mask=");
-        OsbKT.Syscall.PrintString((_keys.Length - 1).ToString());
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         int mask = _keys.Length - 1;
         int index = key.GetHashCode() & mask;
 
@@ -170,49 +151,22 @@ public sealed class StringMap<T>
 
             if (!_occupied[probe])
             {
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: StringMap.FindIndex: empty slot at probe=");
-                OsbKT.Syscall.PrintString(probe.ToString());
-                OsbKT.Syscall.PrintString("\r\n");
-#endif
                 return -1; // Empty slot - not found
             }
 
             if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
             {
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: StringMap.FindIndex: found at probe=");
-                OsbKT.Syscall.PrintString(probe.ToString());
-                OsbKT.Syscall.PrintString(" stored_key=");
-                OsbKT.Syscall.PrintString(_keys[probe] ?? "null");
-                OsbKT.Syscall.PrintString("\r\n");
-#endif
                 return probe; // Found
             }
         }
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: StringMap.FindIndex: full table\r\n");
-#endif
         return -1; // Full table (shouldn't happen with resize)
     }
 
     private void Insert(string key, T value)
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: StringMap.Insert: key=");
-        OsbKT.Syscall.PrintString(key);
-        OsbKT.Syscall.PrintString(" value=");
-        OsbKT.Syscall.PrintString(value.ToString());
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         // Resize if needed
         if ((_count + _deletedCount + 1) > _keys.Length * MaxLoadFactor)
         {
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: StringMap.Insert: resizing from ");
-            OsbKT.Syscall.PrintString(_keys.Length.ToString());
-            OsbKT.Syscall.PrintString("\r\n");
-#endif
             Resize();
         }
 
@@ -233,22 +187,12 @@ public sealed class StringMap<T>
                 _deleted[target] = false;
                 if (firstDeleted >= 0) _deletedCount--;
                 _count++;
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: StringMap.Insert: stored at probe=");
-                OsbKT.Syscall.PrintString(target.ToString());
-                OsbKT.Syscall.PrintString("\r\n");
-#endif
                 return;
             }
 
             if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
             {
                 _values[probe] = value;
-#if FREESTANDING
-                OsbKT.Syscall.PrintString("DBG: StringMap.Insert: updated at probe=");
-                OsbKT.Syscall.PrintString(probe.ToString());
-                OsbKT.Syscall.PrintString("\r\n");
-#endif
                 return;
             }
 

@@ -201,22 +201,9 @@ public partial class Parser
     private Expr ParsePrimary()
     {
         var tok = Current;
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: ParsePrimary: tok.Type=");
-        if (tok.Type == TokenType.StringLiteral) OsbKT.Syscall.PrintString("StringLiteral");
-        else if (tok.Type == TokenType.NumberLiteral) OsbKT.Syscall.PrintString("NumberLiteral");
-        else if (tok.Type == TokenType.Identifier) OsbKT.Syscall.PrintString("Identifier");
-        else OsbKT.Syscall.PrintString("OTHER");
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
 
         if (tok.Type == TokenType.StringLiteral)
         {
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: ParsePrimary: StringLiteral case, StringValue=");
-            OsbKT.Syscall.PrintString(tok.StringValue ?? "NULL");
-            OsbKT.Syscall.PrintString("\r\n");
-#endif
             return MakePrimary(new StringLiteralExpr(tok.StringValue!, tok.Location));
         }
 

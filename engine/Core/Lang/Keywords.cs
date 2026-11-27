@@ -22,20 +22,12 @@ internal static class Keywords
     {
         get
         {
-#if FREESTANDING
-            OsbKT.Syscall.PrintString("DBG: Keywords.Map: get _map=");
-            OsbKT.Syscall.PrintString(_map == null ? "null" : "not null");
-            OsbKT.Syscall.PrintString("\r\n");
-#endif
             return _map ??= BuildMap();
         }
     }
 
     private static StringMap<ushort> BuildMap()
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Keywords.BuildMap: start\r\n");
-#endif
         var map = new StringMap<ushort>();
         // Core keywords (OSLANG 0.1+)
         AddKeyword(map, "AND", TokenType.And);
@@ -121,42 +113,11 @@ internal static class Keywords
 
         // OSLANG 0.62
         AddKeyword(map, "OSB", TokenType.Osb);
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Keywords.BuildMap: end, map.Count=");
-        OsbKT.Syscall.PrintString(map.Count.ToString());
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         return map;
     }
 
     private static void AddKeyword(StringMap<ushort> map, string key, TokenType type)
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: AddKeyword: key=");
-        OsbKT.Syscall.PrintString(key);
-        OsbKT.Syscall.PrintString(" type=");
-        if (type == TokenType.Function)
-        {
-            OsbKT.Syscall.PrintString("FUNCTION");
-        }
-        else if (type == TokenType.Enum)
-        {
-            OsbKT.Syscall.PrintString("ENUM");
-        }
-        else if (type == TokenType.Print)
-        {
-            OsbKT.Syscall.PrintString("PRINT");
-        }
-        else if (type == TokenType.End)
-        {
-            OsbKT.Syscall.PrintString("END");
-        }
-        else
-        {
-            OsbKT.Syscall.PrintString("OTHER");
-        }
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         map.Add(key, (ushort)type);
     }
 
@@ -165,41 +126,8 @@ internal static class Keywords
     /// </summary>
     public static bool TryGetKeyword(string upperText, out TokenType type)
     {
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Keywords.TryGetKeyword: upperText=");
-        OsbKT.Syscall.PrintString(upperText);
-        OsbKT.Syscall.PrintString(" _map=");
-        OsbKT.Syscall.PrintString(_map == null ? "null" : "not null");
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         var result = Map.TryGetValue(upperText, out ushort value);
         type = (TokenType)value;
-#if FREESTANDING
-        OsbKT.Syscall.PrintString("DBG: Keywords.TryGetKeyword: result=");
-        OsbKT.Syscall.PrintString(result ? "true" : "false");
-        OsbKT.Syscall.PrintString(" type=");
-        if (type == TokenType.Function)
-        {
-            OsbKT.Syscall.PrintString("FUNCTION");
-        }
-        else if (type == TokenType.Enum)
-        {
-            OsbKT.Syscall.PrintString("ENUM");
-        }
-        else if (type == TokenType.Print)
-        {
-            OsbKT.Syscall.PrintString("PRINT");
-        }
-        else if (type == TokenType.End)
-        {
-            OsbKT.Syscall.PrintString("END");
-        }
-        else
-        {
-            OsbKT.Syscall.PrintString("OTHER");
-        }
-        OsbKT.Syscall.PrintString("\r\n");
-#endif
         return result;
     }
 
