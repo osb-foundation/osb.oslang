@@ -5,20 +5,18 @@ namespace Osb.Engine.Core.Collections;
 
 /// <summary>
 /// Freestanding string-keyed map specialized for Value storage.
-/// Value components are stored in separate object[]/ulong[]/int[]/bool[]
-/// arrays. The ValueKind tag is preserved via bool[] kind-bit arrays for
+/// Value components are stored in separate object[]/ulong[]/bool[] arrays.
+/// The ValueKind tag is preserved via bool[] kind-bit arrays for
 /// immediate types (heapRef == null) and derived from heap object type for
 /// heap-allocated values. ulong[]/int[] reads return 0 for non-zero values
 /// in freestanding NativeAOT, so kind bits use bool[] which round-trips
-/// reliably.
+/// reliably. Enum type/member indices are packed into _payload (ulong).
 /// </summary>
 public sealed class ValueMap
 {
     private string[] _keys;
     private ulong[] _payloads;
     private object[] _heapRefs;
-    private int[] _aux1s;
-    private int[] _aux2s;
     // Kind tag bits (bit0=isBoolean, bit1=isNumber) for immediate types where
     // heapRef is null. ulong[]/int[] reads return 0 in freestanding NativeAOT,
     // so kind bits are stored in bool[] arrays which round-trip reliably.
@@ -38,8 +36,6 @@ public sealed class ValueMap
         _keys = new string[capacity];
         _payloads = new ulong[capacity];
         _heapRefs = new object[capacity];
-        _aux1s = new int[capacity];
-        _aux2s = new int[capacity];
         // Kind bits: only meaningful for immediate types (heapRef == null).
         _kindBit0 = new bool[capacity];
         _kindBit1 = new bool[capacity];
@@ -65,7 +61,7 @@ public sealed class ValueMap
         set
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2, value._kind);
+            Insert(key, value._payload, value._heapRef, value._kind);
         }
     }
 
@@ -109,8 +105,6 @@ public sealed class ValueMap
             System.Array.Clear(_keys, 0, _keys.Length);
             System.Array.Clear(_payloads, 0, _payloads.Length);
             System.Array.Clear(_heapRefs, 0, _heapRefs.Length);
-            System.Array.Clear(_aux1s, 0, _aux1s.Length);
-            System.Array.Clear(_aux2s, 0, _aux2s.Length);
             System.Array.Clear(_kindBit0, 0, _kindBit0.Length);
             System.Array.Clear(_kindBit1, 0, _kindBit1.Length);
             System.Array.Clear(_occupied, 0, _occupied.Length);
@@ -124,12 +118,12 @@ public sealed class ValueMap
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
         if (TryGetValue(key, out _)) throw new ArgumentException("Key already exists");
-        Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2, value._kind);
+        Insert(key, value._payload, value._heapRef, value._kind);
     }
 
-    public void InsertDirect(string key, ulong payload, object heapRef, int aux1, int aux2, ValueKind kind)
+    public void InsertDirect(string key, ulong payload, object heapRef, ValueKind kind)
     {
-        Insert(key, payload, heapRef, aux1, aux2, kind);
+        Insert(key, payload, heapRef, kind);
     }
 
     public struct Enumerator
@@ -182,7 +176,7 @@ public sealed class ValueMap
         return -1;
     }
 
-    private void Insert(string key, ulong payload, object heapRef, int aux1, int aux2, ValueKind kind)
+    private void Insert(string key, ulong payload, object heapRef, ValueKind kind)
     {
         if ((_count + _deletedCount + 1) > _keys.Length * MaxLoadFactor)
         {
@@ -203,8 +197,6 @@ public sealed class ValueMap
                 _keys[target] = key;
                 _payloads[target] = payload;
                 _heapRefs[target] = heapRef;
-                _aux1s[target] = aux1;
-                _aux2s[target] = aux2;
                 // Store kind tag bits for immediate types (heapRef == null).
                 // bit0 = isBoolean, bit1 = isNumber. Heap-derived kinds are
                 // resolved from heapRef type on read, so bits stay false.
@@ -221,8 +213,6 @@ public sealed class ValueMap
             {
                 _payloads[probe] = payload;
                 _heapRefs[probe] = heapRef;
-                _aux1s[probe] = aux1;
-                _aux2s[probe] = aux2;
                 // Update kind tag bits on overwrite.
                 _kindBit0[probe] = heapRef == null && kind == ValueKind.Boolean;
                 _kindBit1[probe] = heapRef == null && kind == ValueKind.Number;
@@ -240,8 +230,6 @@ public sealed class ValueMap
     {
         ulong p = _payloads[index];
         object h = _heapRefs[index];
-        int a1 = _aux1s[index];
-        int a2 = _aux2s[index];
 
         // Derive ValueKind: heap-based types from object type, immediate types
         // from stored kind tag bits (bool[] round-trips reliably in freestanding).
@@ -271,7 +259,7 @@ public sealed class ValueMap
             k = ValueKind.Null;
         }
 
-        return Value.Make(k, p, h, a1, a2);
+        return Value.Make(k, p, h);
     }
 
     private void Resize()
@@ -280,8 +268,6 @@ public sealed class ValueMap
         var oldKeys = _keys;
         var oldPayloads = _payloads;
         var oldHeapRefs = _heapRefs;
-        var oldAux1s = _aux1s;
-        var oldAux2s = _aux2s;
         var oldKindBit0 = _kindBit0;
         var oldKindBit1 = _kindBit1;
         var oldOccupied = _occupied;
@@ -290,8 +276,6 @@ public sealed class ValueMap
         _keys = new string[newCapacity];
         _payloads = new ulong[newCapacity];
         _heapRefs = new object[newCapacity];
-        _aux1s = new int[newCapacity];
-        _aux2s = new int[newCapacity];
         _kindBit0 = new bool[newCapacity];
         _kindBit1 = new bool[newCapacity];
         _occupied = new bool[newCapacity];
@@ -330,7 +314,7 @@ public sealed class ValueMap
                 {
                     k = ValueKind.Null;
                 }
-                Insert(oldKeys[i], oldPayloads[i], oldHeapRefs[i], oldAux1s[i], oldAux2s[i], k);
+                Insert(oldKeys[i], oldPayloads[i], oldHeapRefs[i], k);
             }
         }
     }

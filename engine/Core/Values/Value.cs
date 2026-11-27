@@ -26,30 +26,26 @@ public enum ValueKind : byte
 
 /// <summary>
 /// Tagged value - struct with kind tag and payload union.
-/// Note: For freestanding NativeAOT target, a separate implementation without BCL
-/// dependencies would be needed (using raw pointers and manual memory management).
+/// Layout is kept ≤ 24 bytes to avoid freestanding ILC out-parameter copy defect.
+/// Enum type/member indices are packed into _payload (high/low 32 bits).
 /// </summary>
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 public readonly partial struct Value
 {
-    internal readonly ValueKind _kind;
-
-    // Boolean/Number payload (8 bytes)
-    internal readonly ulong _payload;
-
-    // Reference payload for heap objects
+    // Reference payload for heap objects (offset 0)
     internal readonly object _heapRef;
 
-    // Additional payload for enum (type index + member index)
-    internal readonly int _auxInt1;
-    internal readonly int _auxInt2;
+    // Boolean/Number/Enum payload (offset 8)
+    internal readonly ulong _payload;
 
-    internal Value(ValueKind kind, ulong payload = 0, object heapRef = null, int aux1 = 0, int aux2 = 0)
+    // Kind tag (offset 16) - within 24-byte limit for freestanding NativeAOT
+    internal readonly ValueKind _kind;
+
+    internal Value(ValueKind kind, ulong payload = 0, object heapRef = null)
     {
-        _kind = kind;
-        _payload = payload;
         _heapRef = heapRef;
-        _auxInt1 = aux1;
-        _auxInt2 = aux2;
+        _payload = payload;
+        _kind = kind;
     }
 
     public ValueKind Kind => _kind;
@@ -63,8 +59,8 @@ public readonly partial struct Value
     public static Value String(HeapString str) => new(ValueKind.String, heapRef: str);
     public static Value Array(HeapArray arr) => new(ValueKind.Array, heapRef: arr);
     public static Value Object(HeapObject obj) => new(ValueKind.Object, heapRef: obj);
-    internal static Value Make(ValueKind kind, ulong payload, object heapRef, int aux1, int aux2) => new Value(kind, payload, heapRef, aux1, aux2);
-    public static Value Enum(int typeIndex, int memberIndex) => new(ValueKind.Enum, aux1: typeIndex, aux2: memberIndex);
+    internal static Value Make(ValueKind kind, ulong payload, object heapRef) => new Value(kind, payload, heapRef);
+    public static Value Enum(int typeIndex, int memberIndex) => new(ValueKind.Enum, ((ulong)(uint)typeIndex << 32) | (uint)memberIndex);
     public static Value EnumSet(HeapEnumSet set) => new(ValueKind.EnumSet, heapRef: set);
     public static Value Closure(HeapClosure closure) => new(ValueKind.Closure, heapRef: closure);
     public static Value KeyEvent(HeapKeyEvent evt) => new(ValueKind.KeyEvent, heapRef: evt);
@@ -76,7 +72,7 @@ public readonly partial struct Value
     public HeapString AsString => _kind == ValueKind.String ? (HeapString)_heapRef : null!;
     public HeapArray AsArray => _kind == ValueKind.Array ? (HeapArray)_heapRef : null!;
     public HeapObject AsObject => _kind == ValueKind.Object ? (HeapObject)_heapRef : null!;
-    public (int TypeIndex, int MemberIndex) AsEnum => _kind == ValueKind.Enum ? (_auxInt1, _auxInt2) : (-1, -1);
+    public (int TypeIndex, int MemberIndex) AsEnum => _kind == ValueKind.Enum ? ((int)(_payload >> 32), (int)(_payload & 0xFFFFFFFFu)) : (-1, -1);
     public HeapEnumSet AsEnumSet => _kind == ValueKind.EnumSet ? (HeapEnumSet)_heapRef : null!;
     public HeapClosure AsClosure => _kind == ValueKind.Closure ? (HeapClosure)_heapRef : null!;
     public HeapKeyEvent AsKeyEvent => _kind == ValueKind.KeyEvent ? (HeapKeyEvent)_heapRef : null!;
@@ -117,7 +113,7 @@ public readonly partial struct Value
 
     public bool TryAsEnum(out (int TypeIndex, int MemberIndex) value)
     {
-        if (_kind == ValueKind.Enum) { value = (_auxInt1, _auxInt2); return true; }
+        if (_kind == ValueKind.Enum) { value = ((int)(_payload >> 32), (int)(_payload & 0xFFFFFFFFu)); return true; }
         value = (-1, -1); return false;
     }
 
