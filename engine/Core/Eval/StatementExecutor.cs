@@ -129,9 +129,10 @@ internal sealed class StatementExecutor
                 break;
 
             case Lang.BlockStmt b:
-                foreach (var s in b.Statements)
+                var blockStatements = b.Statements;
+                for (int bi = 0; bi < CollectionIteration.Count(blockStatements); bi++)
                 {
-                    Execute(s);
+                    Execute(CollectionIteration.Get(blockStatements, bi));
                     if (_ctx.CurrentFlow != ControlFlow.Normal) break;
                 }
                 break;
@@ -143,23 +144,27 @@ internal sealed class StatementExecutor
         var cond = _interpreter.Evaluate(stmt.Condition);
         if (Interpreter.IsTruthy(cond))
         {
-            foreach (var s in stmt.ThenBody)
+            var thenBody = stmt.ThenBody;
+            for (int ti = 0; ti < CollectionIteration.Count(thenBody); ti++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(thenBody, ti));
                 if (_ctx.CurrentFlow != ControlFlow.Normal) return;
             }
         }
         else
         {
             bool matched = false;
-            foreach (var elif in stmt.ElifClauses)
+            var elifClauses = stmt.ElifClauses;
+            for (int ei = 0; ei < CollectionIteration.Count(elifClauses); ei++)
             {
+                var elif = CollectionIteration.Get(elifClauses, ei);
                 var elifCond = _interpreter.Evaluate(elif.Condition);
                 if (Interpreter.IsTruthy(elifCond))
                 {
-                    foreach (var s in elif.Body)
+                    var elifBody = elif.Body;
+                    for (int li = 0; li < CollectionIteration.Count(elifBody); li++)
                     {
-                        Execute(s);
+                        Execute(CollectionIteration.Get(elifBody, li));
                         if (_ctx.CurrentFlow != ControlFlow.Normal) return;
                     }
                     matched = true;
@@ -169,9 +174,10 @@ internal sealed class StatementExecutor
 
             if (!matched && stmt.ElseBody != null)
             {
-                foreach (var s in stmt.ElseBody)
+                var elseBody = stmt.ElseBody;
+                for (int gi = 0; gi < CollectionIteration.Count(elseBody); gi++)
                 {
-                    Execute(s);
+                    Execute(CollectionIteration.Get(elseBody, gi));
                     if (_ctx.CurrentFlow != ControlFlow.Normal) return;
                 }
             }
@@ -210,9 +216,10 @@ internal sealed class StatementExecutor
 
             if (!continueLoop) break;
 
-            foreach (var s in stmt.Body)
+            var forBody = stmt.Body;
+            for (int fi = 0; fi < CollectionIteration.Count(forBody); fi++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(forBody, fi));
                 if (_ctx.CurrentFlow == ControlFlow.Break) { _ctx.CurrentFlow = ControlFlow.Normal; goto ExitLoop; }
                 if (_ctx.CurrentFlow == ControlFlow.Continue) { _ctx.CurrentFlow = ControlFlow.Normal; break; }
                 if (_ctx.CurrentFlow != ControlFlow.Normal) goto ExitLoop;
@@ -233,9 +240,10 @@ internal sealed class StatementExecutor
             var cond = _interpreter.Evaluate(stmt.Condition);
             if (!Interpreter.IsTruthy(cond)) break;
 
-            foreach (var s in stmt.Body)
+            var whileBody = stmt.Body;
+            for (int wi = 0; wi < CollectionIteration.Count(whileBody); wi++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(whileBody, wi));
                 if (_ctx.CurrentFlow == ControlFlow.Break) { _ctx.CurrentFlow = ControlFlow.Normal; goto ExitLoop; }
                 if (_ctx.CurrentFlow == ControlFlow.Continue) { _ctx.CurrentFlow = ControlFlow.Normal; break; }
                 if (_ctx.CurrentFlow != ControlFlow.Normal) goto ExitLoop;
@@ -250,9 +258,10 @@ internal sealed class StatementExecutor
         _ctx.LoopDepth++;
         while (true)
         {
-            foreach (var s in stmt.Body)
+            var doBody = stmt.Body;
+            for (int di = 0; di < CollectionIteration.Count(doBody); di++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(doBody, di));
                 if (_ctx.CurrentFlow == ControlFlow.Break) { _ctx.CurrentFlow = ControlFlow.Normal; goto ExitLoop; }
                 if (_ctx.CurrentFlow == ControlFlow.Continue) { _ctx.CurrentFlow = ControlFlow.Normal; break; }
                 if (_ctx.CurrentFlow != ControlFlow.Normal) goto ExitLoop;
@@ -271,9 +280,10 @@ internal sealed class StatementExecutor
         _ctx.CurrentFrame.TryCatchFrameIndex = _ctx.Frames.Count - 1;
         _ctx.CurrentFrame.InTry = true;
 
-        foreach (var s in stmt.TryBody)
+        var tryBody = stmt.TryBody;
+        for (int ti = 0; ti < CollectionIteration.Count(tryBody); ti++)
         {
-            Execute(s);
+            Execute(CollectionIteration.Get(tryBody, ti));
             if (_ctx.CurrentFlow != ControlFlow.Normal) break;
         }
 
@@ -283,9 +293,10 @@ internal sealed class StatementExecutor
             _ctx.CurrentFlow = ControlFlow.Normal;
             _ctx.CurrentException = Value.NullValue;
 
-            foreach (var s in stmt.CatchBody)
+            var catchBody = stmt.CatchBody;
+            for (int ci = 0; ci < CollectionIteration.Count(catchBody); ci++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(catchBody, ci));
                 if (_ctx.CurrentFlow != ControlFlow.Normal) break;
             }
         }
@@ -300,16 +311,20 @@ internal sealed class StatementExecutor
         bool matched = false;
         _ctx.InSwitch = true;
 
-        foreach (var case_ in stmt.Cases)
+        var cases = stmt.Cases;
+        for (int csi = 0; csi < CollectionIteration.Count(cases); csi++)
         {
-            foreach (var caseVal in case_.Values)
+            var case_ = CollectionIteration.Get(cases, csi);
+            var caseValues = case_.Values;
+            for (int vi = 0; vi < CollectionIteration.Count(caseValues); vi++)
             {
-                var cv = _interpreter.Evaluate(caseVal);
+                var cv = _interpreter.Evaluate(CollectionIteration.Get(caseValues, vi));
                 if (ValueUtilities.ValuesEqual(value, cv))
                 {
-                    foreach (var s in case_.Body)
+                    var caseBody = case_.Body;
+                    for (int bi = 0; bi < CollectionIteration.Count(caseBody); bi++)
                     {
-                        Execute(s);
+                        Execute(CollectionIteration.Get(caseBody, bi));
                         if (_ctx.CurrentFlow != ControlFlow.Normal) goto ExitSwitch;
                     }
                     matched = true;
@@ -320,9 +335,10 @@ internal sealed class StatementExecutor
 
         if (!matched && stmt.DefaultBody != null)
         {
-            foreach (var s in stmt.DefaultBody)
+            var defaultBody = stmt.DefaultBody;
+            for (int di = 0; di < CollectionIteration.Count(defaultBody); di++)
             {
-                Execute(s);
+                Execute(CollectionIteration.Get(defaultBody, di));
                 if (_ctx.CurrentFlow != ControlFlow.Normal) goto ExitSwitch;
             }
         }
@@ -340,9 +356,10 @@ internal sealed class StatementExecutor
             return;
         }
 
-        foreach (var arg in stmt.Args)
+        var args = stmt.Args;
+        for (int ai = 0; ai < CollectionIteration.Count(args); ai++)
         {
-            _interpreter.Evaluate(arg);
+            _interpreter.Evaluate(CollectionIteration.Get(args, ai));
         }
     }
 }

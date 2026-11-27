@@ -75,7 +75,11 @@ public sealed class NodeList<T> : IReadOnlyList<T>
     private void GrowTo(int capacity)
     {
         var newItems = new T[capacity];
-        Array.Copy(_items, newItems, _count);
+        // Manual copy instead of Array.Copy to avoid potential GC issues in freestanding NativeAOT
+        for (int i = 0; i < _count; i++)
+        {
+            newItems[i] = _items[i];
+        }
         _items = newItems;
     }
 

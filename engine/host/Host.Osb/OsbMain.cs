@@ -273,17 +273,60 @@ internal static unsafe class OsbMain
         try
         {
             var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
-            var tokens = new Osb.Engine.Core.Collections.NodeList<Osb.Engine.Core.Lang.Token>();
-            bool atEnd = lexer.IsAtEnd;
-            while (!atEnd)
+            var tokens = lexer.Tokenize();
+            
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: OsbMain: tokens.Count from Tokenize=");
+            OsbKT.Syscall.PrintString(tokens.Count.ToString());
+            OsbKT.Syscall.PrintString("\r\n");
+            for (int i = 0; i < tokens.Count; i++)
             {
-                tokens.Add(lexer.NextToken());
-                atEnd = lexer.IsAtEnd;
+                OsbKT.Syscall.PrintString("  [");
+                OsbKT.Syscall.PrintString(i.ToString());
+                OsbKT.Syscall.PrintString("] Type=");
+                var t = tokens[i].Type;
+                if (t == Osb.Engine.Core.Lang.TokenType.Function)
+                {
+                    OsbKT.Syscall.PrintString("FUNCTION");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.Print)
+                {
+                    OsbKT.Syscall.PrintString("PRINT");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.End)
+                {
+                    OsbKT.Syscall.PrintString("END");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.Enum)
+                {
+                    OsbKT.Syscall.PrintString("ENUM");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.Eof)
+                {
+                    OsbKT.Syscall.PrintString("EOF");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.Newline)
+                {
+                    OsbKT.Syscall.PrintString("NEWLINE");
+                }
+                else if (t == Osb.Engine.Core.Lang.TokenType.Identifier)
+                {
+                    OsbKT.Syscall.PrintString("IDENTIFIER");
+                }
+                else
+                {
+                    OsbKT.Syscall.PrintString("OTHER");
+                }
+                OsbKT.Syscall.PrintString(" Text='");
+                OsbKT.Syscall.PrintString(tokens[i].Text);
+                OsbKT.Syscall.PrintString("'\r\n");
             }
-            tokens.Add(new Osb.Engine.Core.Lang.Token(Osb.Engine.Core.Lang.TokenType.Eof, "", lexer.CurrentLocation));
+#endif
 
             var parser = new Osb.Engine.Core.Lang.Parser(tokens);
+            Syscall.PrintString("DBG: Before parser.Parse()\r\n");
             var program = parser.Parse();
+            Syscall.PrintString("DBG: After parser.Parse()\r\n");
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
             interpreter.Execute(program);

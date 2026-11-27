@@ -41,16 +41,11 @@ public partial class Lexer
     public NodeList<Token> Tokenize()
     {
         var tokens = new NodeList<Token>();
-        Diag("TK_ENTER");
         while (!IsAtEnd)
         {
-            Diag("TK_LOOP");
             tokens.Add(NextToken());
-            Diag("TK_ADDED");
         }
-        Diag("TK_EOF");
         tokens.Add(new Token(TokenType.Eof, "", CurrentLocation));
-        Diag("TK_EXIT");
         return tokens;
     }
 
@@ -82,6 +77,9 @@ public partial class Lexer
 
     internal Token NextToken()
     {
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: enter\r\n");
+#endif
         Diag("NT_ENTER");
         var start = CurrentLocation;
         char c = Advance();
@@ -90,12 +88,18 @@ public partial class Lexer
         if (c == ' ' || c == '\t' || c == '\r')
         {
             Diag("NT_WS");
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: whitespace, recursing\r\n");
+#endif
             return NextToken(); // skip and recurse
         }
 
         // Newline
         if (c == '\n')
         {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: newline\r\n");
+#endif
             return new Token(TokenType.Newline, "\n", start);
         }
 
@@ -114,6 +118,9 @@ public partial class Lexer
                 while (!IsAtEnd && Current != '\n') Advance();
             }
             Diag("NT_CMNT");
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: comment, recursing\r\n");
+#endif
             return NextToken();
         }
 
@@ -126,34 +133,52 @@ public partial class Lexer
                 Advance();
             }
             if (!IsAtEnd) { Advance(); Advance(); } // consume */
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: block comment, recursing\r\n");
+#endif
             return NextToken();
         }
 
         // Identifiers and keywords
         if (IsIdentifierStart(c))
         {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: identifier/keyword start\r\n");
+#endif
             return ReadIdentifierOrKeyword(start);
         }
 
         // Numbers
         if (char.IsDigit(c))
         {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: number start\r\n");
+#endif
             return ReadNumber(start);
         }
 
         // String literals
         if (c == '"')
         {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: string start\r\n");
+#endif
             return ReadString(start);
         }
 
         // Date literal: #YYYY-MM-DD#
         if (c == '#')
         {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: date/time start\r\n");
+#endif
             return ReadDateOrTime(start);
         }
 
         // Operators and punctuation
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Lexer.NextToken: operator/punctuation\r\n");
+#endif
         return ReadOperatorOrPunctuation(c, start);
     }
 
@@ -173,9 +198,30 @@ public partial class Lexer
         var text = sb.ToString();
         var upper = ToUpperInvariant(text); // ASCII-only per SQ-002
 
-        return Keywords.TryGetKeyword(upper, out var keywordType)
-            ? new Token(keywordType, text, start)
-            : new Token(TokenType.Identifier, text, start);
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Lexer.ReadIdentifierOrKeyword: text=");
+        OsbKT.Syscall.PrintString(text);
+        OsbKT.Syscall.PrintString(" upper=");
+        OsbKT.Syscall.PrintString(upper);
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
+
+        if (Keywords.TryGetKeyword(upper, out var keywordType))
+        {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.ReadIdentifierOrKeyword: keyword=");
+            OsbKT.Syscall.PrintString(keywordType.ToString());
+            OsbKT.Syscall.PrintString("\r\n");
+#endif
+            return new Token(keywordType, text, start);
+        }
+        else
+        {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Lexer.ReadIdentifierOrKeyword: identifier\r\n");
+#endif
+            return new Token(TokenType.Identifier, text, start);
+        }
     }
 
     private Token ReadNumber(SourceLocation start)

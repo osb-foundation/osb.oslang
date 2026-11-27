@@ -31,9 +31,17 @@ public sealed class HeapString : HeapObject
 
     public HeapString(string text, IUtf8Provider? utf8Provider = null)
     {
-        var provider = utf8Provider ?? new DefaultUtf8Provider();
-        // Validate and store as UTF-8
-        Utf8Bytes = provider.GetBytes(text ?? string.Empty);
+        // Freestanding interface dispatch is broken (dispatch cells are not
+        // initialized by the runtime), so calling GetBytes through the
+        // IUtf8Provider interface reference yields a null/garbage target.
+        // When no provider is supplied, use the concrete FreestandingUtf8Provider
+        // and call its GetBytes directly (no interface dispatch). When a provider
+        // is supplied, honor it (the host passes a provider whose generated
+        // direct-call fast path resolves without the broken dispatch cell).
+        string source = text ?? string.Empty;
+        Utf8Bytes = utf8Provider != null
+            ? utf8Provider.GetBytes(source)
+            : new FreestandingUtf8Provider().GetBytes(source);
 
         // Build code-point offset table (SQ-001: code-point indexing)
         // Each code point's starting byte offset
@@ -125,8 +133,8 @@ public sealed class HeapString : HeapObject
 
     public override string ToString()
     {
-        var provider = new DefaultUtf8Provider();
-        return provider.GetString(Utf8Bytes);
+        // Concrete call avoids the broken freestanding interface dispatch.
+        return new FreestandingUtf8Provider().GetString(Utf8Bytes);
     }
 
     private static int GetUtf8CodePointLength(byte firstByte)

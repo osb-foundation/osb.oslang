@@ -16,104 +16,192 @@ namespace Osb.Engine.Core.Lang;
 /// </summary>
 internal static class Keywords
 {
-    private static StringMap<TokenType>? _map;
+    private static StringMap<ushort>? _map;
 
-    private static StringMap<TokenType> Map => _map ??= BuildMap();
-
-    private static StringMap<TokenType> BuildMap()
+    private static StringMap<ushort> Map
     {
-        var map = new StringMap<TokenType>();
+        get
+        {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: Keywords.Map: get _map=");
+            OsbKT.Syscall.PrintString(_map == null ? "null" : "not null");
+            OsbKT.Syscall.PrintString("\r\n");
+#endif
+            return _map ??= BuildMap();
+        }
+    }
+
+    private static StringMap<ushort> BuildMap()
+    {
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Keywords.BuildMap: start\r\n");
+#endif
+        var map = new StringMap<ushort>();
         // Core keywords (OSLANG 0.1+)
-        map.Add("AND", TokenType.And);
-        map.Add("BASE", TokenType.Base);
-        map.Add("BOOLEAN", TokenType.Boolean);
-        map.Add("BOOL", TokenType.Bool);
-        map.Add("BREAK", TokenType.Break);
-        map.Add("CATCH", TokenType.Catch);
-        map.Add("CEIL", TokenType.Ceil);
-        map.Add("CLASS", TokenType.Class);
-        map.Add("CLEAR", TokenType.Clear);
-        map.Add("CONSTRUCTOR", TokenType.Constructor);
-        map.Add("CONTINUE", TokenType.Continue);
-        map.Add("COUNT", TokenType.Count);
-        map.Add("DO", TokenType.Do);
-        map.Add("ELIF", TokenType.Elif);
-        map.Add("ELSE", TokenType.Else);
-        map.Add("END", TokenType.End);
-        map.Add("FALSE", TokenType.False);
-        map.Add("FLOOR", TokenType.Floor);
-        map.Add("FOR", TokenType.For);
-        map.Add("FUNCTION", TokenType.Function);
-        map.Add("GLOBAL", TokenType.Global);
-        map.Add("IF", TokenType.If);
-        map.Add("INPUT", TokenType.Input);
-        map.Add("INTERFACE", TokenType.Interface);
-        map.Add("ME", TokenType.Me);
-        map.Add("NEW", TokenType.New);
-        map.Add("NOT", TokenType.Not);
-        map.Add("NULL", TokenType.Null);
-        map.Add("NUMBER", TokenType.Number);
-        map.Add("OR", TokenType.Or);
-        map.Add("POW", TokenType.Pow);
-        map.Add("PRINT", TokenType.Print);
-        map.Add("PRIVATE", TokenType.Private);
-        map.Add("PROTECTED", TokenType.Protected);
-        map.Add("PUBLIC", TokenType.Public);
-        map.Add("RETURN", TokenType.Return);
-        map.Add("SQRT", TokenType.Sqrt);
-        map.Add("STEP", TokenType.Step);
-        map.Add("STRING", TokenType.String);
-        map.Add("STR", TokenType.Str);
-        map.Add("THEN", TokenType.Then);
-        map.Add("TO", TokenType.To);
-        map.Add("TRUE", TokenType.True);
-        map.Add("TRY", TokenType.Try);
-        map.Add("TYPEOF", TokenType.TypeOf);
-        map.Add("VAR", TokenType.Var);
-        map.Add("WHILE", TokenType.While);
+        AddKeyword(map, "AND", TokenType.And);
+        AddKeyword(map, "BASE", TokenType.Base);
+        AddKeyword(map, "BOOLEAN", TokenType.Boolean);
+        AddKeyword(map, "BOOL", TokenType.Bool);
+        AddKeyword(map, "BREAK", TokenType.Break);
+        AddKeyword(map, "CATCH", TokenType.Catch);
+        AddKeyword(map, "CEIL", TokenType.Ceil);
+        AddKeyword(map, "CLASS", TokenType.Class);
+        AddKeyword(map, "CLEAR", TokenType.Clear);
+        AddKeyword(map, "CONSTRUCTOR", TokenType.Constructor);
+        AddKeyword(map, "CONTINUE", TokenType.Continue);
+        AddKeyword(map, "COUNT", TokenType.Count);
+        AddKeyword(map, "DO", TokenType.Do);
+        AddKeyword(map, "ELIF", TokenType.Elif);
+        AddKeyword(map, "ELSE", TokenType.Else);
+        AddKeyword(map, "END", TokenType.End);
+        AddKeyword(map, "FALSE", TokenType.False);
+        AddKeyword(map, "FLOOR", TokenType.Floor);
+        AddKeyword(map, "FOR", TokenType.For);
+        AddKeyword(map, "FUNCTION", TokenType.Function);
+        AddKeyword(map, "GLOBAL", TokenType.Global);
+        AddKeyword(map, "IF", TokenType.If);
+        AddKeyword(map, "INPUT", TokenType.Input);
+        AddKeyword(map, "INTERFACE", TokenType.Interface);
+        AddKeyword(map, "ME", TokenType.Me);
+        AddKeyword(map, "NEW", TokenType.New);
+        AddKeyword(map, "NOT", TokenType.Not);
+        AddKeyword(map, "NULL", TokenType.Null);
+        AddKeyword(map, "NUMBER", TokenType.Number);
+        AddKeyword(map, "OR", TokenType.Or);
+        AddKeyword(map, "POW", TokenType.Pow);
+        AddKeyword(map, "PRINT", TokenType.Print);
+        AddKeyword(map, "PRIVATE", TokenType.Private);
+        AddKeyword(map, "PROTECTED", TokenType.Protected);
+        AddKeyword(map, "PUBLIC", TokenType.Public);
+        AddKeyword(map, "RETURN", TokenType.Return);
+        AddKeyword(map, "SQRT", TokenType.Sqrt);
+        AddKeyword(map, "STEP", TokenType.Step);
+        AddKeyword(map, "STRING", TokenType.String);
+        AddKeyword(map, "STR", TokenType.Str);
+        AddKeyword(map, "THEN", TokenType.Then);
+        AddKeyword(map, "TO", TokenType.To);
+        AddKeyword(map, "TRUE", TokenType.True);
+        AddKeyword(map, "TRY", TokenType.Try);
+        AddKeyword(map, "TYPEOF", TokenType.TypeOf);
+        AddKeyword(map, "VAR", TokenType.Var);
+        AddKeyword(map, "WHILE", TokenType.While);
 
         // OSLANG 0.3
-        map.Add("SWITCH", TokenType.Switch);
-        map.Add("CASE", TokenType.Case);
-        map.Add("DEFAULT", TokenType.Default);
-        map.Add("VIRTUAL", TokenType.Virtual);
-        map.Add("OVERRIDE", TokenType.Override);
-        map.Add("EVENT", TokenType.Event);
-        map.Add("ON", TokenType.On);
-        map.Add("RAISE", TokenType.Raise);
-        map.Add("USING", TokenType.Using);
+        AddKeyword(map, "SWITCH", TokenType.Switch);
+        AddKeyword(map, "CASE", TokenType.Case);
+        AddKeyword(map, "DEFAULT", TokenType.Default);
+        AddKeyword(map, "VIRTUAL", TokenType.Virtual);
+        AddKeyword(map, "OVERRIDE", TokenType.Override);
+        AddKeyword(map, "EVENT", TokenType.Event);
+        AddKeyword(map, "ON", TokenType.On);
+        AddKeyword(map, "RAISE", TokenType.Raise);
+        AddKeyword(map, "USING", TokenType.Using);
 
         // OSLANG 0.4
-        map.Add("MATH", TokenType.Math);
-        map.Add("FILE", TokenType.File);
-        map.Add("DIR", TokenType.Dir);
+        AddKeyword(map, "MATH", TokenType.Math);
+        AddKeyword(map, "FILE", TokenType.File);
+        AddKeyword(map, "DIR", TokenType.Dir);
 
         // OSLANG 0.5
-        map.Add("DATE", TokenType.Date);
-        map.Add("TIME", TokenType.Time);
+        AddKeyword(map, "DATE", TokenType.Date);
+        AddKeyword(map, "TIME", TokenType.Time);
 
         // OSLANG 0.6
-        map.Add("SHOW", TokenType.Show);
-        map.Add("MOD", TokenType.Mod);
+        AddKeyword(map, "SHOW", TokenType.Show);
+        AddKeyword(map, "MOD", TokenType.Mod);
 
         // OSLANG 0.6 - Standard Library namespace
-        map.Add("OSL", TokenType.Osl);
+        AddKeyword(map, "OSL", TokenType.Osl);
 
         // OSLANG 0.61
-        map.Add("ENUM", TokenType.Enum);
+        AddKeyword(map, "ENUM", TokenType.Enum);
         // OSLANG 0.62
-        map.Add("IN", TokenType.In);
-        map.Add("EACH", TokenType.Each);
+        AddKeyword(map, "IN", TokenType.In);
+        AddKeyword(map, "EACH", TokenType.Each);
 
         // OSLANG 0.62
-        map.Add("OSB", TokenType.Osb);
+        AddKeyword(map, "OSB", TokenType.Osb);
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Keywords.BuildMap: end, map.Count=");
+        OsbKT.Syscall.PrintString(map.Count.ToString());
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
         return map;
+    }
+
+    private static void AddKeyword(StringMap<ushort> map, string key, TokenType type)
+    {
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: AddKeyword: key=");
+        OsbKT.Syscall.PrintString(key);
+        OsbKT.Syscall.PrintString(" type=");
+        if (type == TokenType.Function)
+        {
+            OsbKT.Syscall.PrintString("FUNCTION");
+        }
+        else if (type == TokenType.Enum)
+        {
+            OsbKT.Syscall.PrintString("ENUM");
+        }
+        else if (type == TokenType.Print)
+        {
+            OsbKT.Syscall.PrintString("PRINT");
+        }
+        else if (type == TokenType.End)
+        {
+            OsbKT.Syscall.PrintString("END");
+        }
+        else
+        {
+            OsbKT.Syscall.PrintString("OTHER");
+        }
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
+        map.Add(key, (ushort)type);
     }
 
     /// <summary>
     /// Attempts to look up a keyword. Uses ASCII-only case-insensitive comparison (SQ-002).
     /// </summary>
-    public static bool TryGetKeyword(string upperText, out TokenType type) => Map.TryGetValue(upperText, out type);
+    public static bool TryGetKeyword(string upperText, out TokenType type)
+    {
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Keywords.TryGetKeyword: upperText=");
+        OsbKT.Syscall.PrintString(upperText);
+        OsbKT.Syscall.PrintString(" _map=");
+        OsbKT.Syscall.PrintString(_map == null ? "null" : "not null");
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
+        var result = Map.TryGetValue(upperText, out ushort value);
+        type = (TokenType)value;
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: Keywords.TryGetKeyword: result=");
+        OsbKT.Syscall.PrintString(result ? "true" : "false");
+        OsbKT.Syscall.PrintString(" type=");
+        if (type == TokenType.Function)
+        {
+            OsbKT.Syscall.PrintString("FUNCTION");
+        }
+        else if (type == TokenType.Enum)
+        {
+            OsbKT.Syscall.PrintString("ENUM");
+        }
+        else if (type == TokenType.Print)
+        {
+            OsbKT.Syscall.PrintString("PRINT");
+        }
+        else if (type == TokenType.End)
+        {
+            OsbKT.Syscall.PrintString("END");
+        }
+        else
+        {
+            OsbKT.Syscall.PrintString("OTHER");
+        }
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
+        return result;
+    }
 
     /// <summary>
     /// Checks if a token type is a keyword.

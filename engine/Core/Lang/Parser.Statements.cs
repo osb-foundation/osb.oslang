@@ -6,8 +6,17 @@ public partial class Parser
 {
     private Stmt ParseStatement()
     {
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParseStatement: start\r\n");
+#endif
         SkipNewlines();
         if (IsAtEnd) return new BlockStmt([], Current.Location);
+
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParseStatement: Current=");
+        OsbKT.Syscall.PrintString(Current.Type.ToString());
+        OsbKT.Syscall.PrintString("\r\n");
+#endif
 
         return Current.Type switch
         {
@@ -189,14 +198,40 @@ public partial class Parser
         return new TryCatchStmt(tryBody, errorVar, catchBody, start);
     }
 
-    private PrintStmt ParsePrint()
+private PrintStmt ParsePrint()
     {
-        var start = Current.Location;
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParsePrint: start\r\n");
+#endif
+        var currentToken = Current;
+        var start = currentToken.Location;
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParsePrint: after start\r\n");
+#endif
         Advance(); // PRINT
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParsePrint: after Advance PRINT\r\n");
+#endif
         var expressions = new NodeList<Expr>();
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParsePrint: after NodeList ctor\r\n");
+#endif
         if (!Check(TokenType.Newline) && !IsAtEnd)
         {
-            expressions.Add(ParseExpression());
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: ParsePrint: before ParseExpression\r\n");
+#endif
+            var expr = ParseExpression();
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: ParsePrint: after ParseExpression, expr=");
+            if (expr == null) OsbKT.Syscall.PrintString("NULL");
+            else OsbKT.Syscall.PrintString("NOT NULL");
+            OsbKT.Syscall.PrintString("\r\n");
+#endif
+            expressions.Add(expr);
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: ParsePrint: after Add\r\n");
+#endif
             while (Check(TokenType.Comma))
             {
                 Advance();
@@ -204,6 +239,9 @@ public partial class Parser
             }
         }
         Expect(TokenType.Newline, "Expected end of line after PRINT");
+#if FREESTANDING
+        OsbKT.Syscall.PrintString("DBG: ParsePrint: end\r\n");
+#endif
         return new PrintStmt(expressions, start);
     }
 

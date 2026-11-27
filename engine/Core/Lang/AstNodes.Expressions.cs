@@ -18,18 +18,23 @@ public sealed class NumberLiteralExpr : Expr
 }
 
 /// <summary>
-/// String literal expression.
-/// </summary>
-public sealed class StringLiteralExpr : Expr
-{
-    public string Value { get; }
-
-    public StringLiteralExpr(string value, SourceLocation location)
-        : base(location)
+    /// String literal expression.
+    /// </summary>
+    public sealed class StringLiteralExpr : Expr
     {
-        Value = value;
+        public string Value { get; }
+
+        public StringLiteralExpr(string value, SourceLocation location)
+            : base(location)
+        {
+#if FREESTANDING
+            OsbKT.Syscall.PrintString("DBG: StringLiteralExpr ctor: value=");
+            OsbKT.Syscall.PrintString(value ?? "NULL");
+            OsbKT.Syscall.PrintString("\r\n");
+#endif
+            Value = value;
+        }
     }
-}
 
 /// <summary>
 /// Date literal expression.

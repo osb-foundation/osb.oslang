@@ -74,10 +74,11 @@ internal sealed class ExpressionEvaluator
 
     private Value EvaluateArray(Lang.ArrayLiteralExpr expr)
     {
-        var arr = _ctx.Heap.AllocArray(expr.Elements.Count);
-        for (int i = 0; i < expr.Elements.Count; i++)
+        var elements = expr.Elements;
+        var arr = _ctx.Heap.AllocArray(CollectionIteration.Count(elements));
+        for (int i = 0; i < CollectionIteration.Count(elements); i++)
         {
-            arr.Items[i] = Evaluate(expr.Elements[i]);
+            arr.Items[i] = Evaluate(CollectionIteration.Get(elements, i));
         }
         return Value.Array(arr);
     }
@@ -113,9 +114,10 @@ internal sealed class ExpressionEvaluator
     private Value EvaluateCall(Lang.CallExpr expr)
     {
         var args = new ValueArray();
-        foreach (var arg in expr.Args)
+        var callArgs = expr.Args;
+        for (int ai = 0; ai < CollectionIteration.Count(callArgs); ai++)
         {
-            args.Add(Evaluate(arg));
+            args.Add(Evaluate(CollectionIteration.Get(callArgs, ai)));
             if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         }
 
@@ -137,9 +139,10 @@ internal sealed class ExpressionEvaluator
         var obj = Evaluate(expr.Object);
         if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         var args = new ValueArray();
-        foreach (var arg in expr.Args)
+        var callArgs = expr.Args;
+        for (int ai = 0; ai < CollectionIteration.Count(callArgs); ai++)
         {
-            args.Add(Evaluate(arg));
+            args.Add(Evaluate(CollectionIteration.Get(callArgs, ai)));
             if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         }
 
@@ -190,9 +193,10 @@ internal sealed class ExpressionEvaluator
         {
             if (_enums.TryGetValue(enumId.Name, out var enumDecl))
             {
-                for (int i = 0; i < enumDecl.Members.Count; i++)
+                var members = enumDecl.Members;
+                for (int i = 0; i < CollectionIteration.Count(members); i++)
                 {
-                    if (enumDecl.Members[i].Name.Equals(expr.MemberName, StringComparison.OrdinalIgnoreCase))
+                    if (CollectionIteration.Get(members, i).Name.Equals(expr.MemberName, StringComparison.OrdinalIgnoreCase))
                     {
                         int typeIndex = GetOrCreateEnumTypeIndex(enumId.Name);
                         return Value.Enum(typeIndex, i);
@@ -291,9 +295,10 @@ internal sealed class ExpressionEvaluator
         }
 
         var args = new ValueArray();
-        foreach (var arg in expr.Args)
+        var callArgs = expr.Args;
+        for (int ai = 0; ai < CollectionIteration.Count(callArgs); ai++)
         {
-            args.Add(Evaluate(arg));
+            args.Add(Evaluate(CollectionIteration.Get(callArgs, ai)));
             if (_ctx.CurrentFlow != ControlFlow.Normal) return Value.NullValue;
         }
 

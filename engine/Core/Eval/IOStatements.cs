@@ -14,9 +14,10 @@ internal static class IOStatements
     public static void ExecutePrint(Interpreter interpreter, Lang.PrintStmt stmt, ExecutionContext ctx)
     {
         var sb = new StringBuffer();
-        foreach (var expr in stmt.Expressions)
+        var expressions = stmt.Expressions;
+        for (int i = 0; i < CollectionIteration.Count(expressions); i++)
         {
-            var val = interpreter.Evaluate(expr);
+            var val = interpreter.Evaluate(CollectionIteration.Get(expressions, i));
             sb.Append(interpreter.ToDisplayString(val));
         }
         ctx.Host.Write(sb.ToString());
@@ -26,9 +27,10 @@ internal static class IOStatements
     public static void ExecuteShow(Interpreter interpreter, Lang.ShowStmt stmt, ExecutionContext ctx)
     {
         var sb = new StringBuffer();
-        foreach (var expr in stmt.Expressions)
+        var expressions = stmt.Expressions;
+        for (int i = 0; i < CollectionIteration.Count(expressions); i++)
         {
-            var val = interpreter.Evaluate(expr);
+            var val = interpreter.Evaluate(CollectionIteration.Get(expressions, i));
             sb.Append(interpreter.ToDisplayString(val));
         }
         ctx.Host.Write(sb.ToString());
