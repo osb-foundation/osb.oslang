@@ -85,10 +85,16 @@ internal sealed class ExpressionEvaluator
 
     private Value ResolveIdentifier(Lang.IdentifierExpr id)
     {
-        if (_ctx.CurrentFrame.Locals.TryGetValue(id.Name, out var local))
+        // Use the return-buffer getter (GetValue) rather than TryGetValue(out Value):
+        // freestanding NativeAOT ILC corrupts an out Value when the call
+        // immediately follows the indexer (get_Item). GetValue returns the Value
+        // through the caller's return buffer, which round-trips correctly.
+        Value local = _ctx.CurrentFrame.Locals.GetValue(id.Name, out bool localFound);
+        if (localFound)
             return local;
 
-        if (TryResolveGlobal(id.Name, out var global))
+        Value global = TryResolveGlobal(id.Name, out bool globalFound);
+        if (globalFound)
             return global;
 
         if (_functions.TryGetValue(id.Name, out var fn))
@@ -105,12 +111,11 @@ internal sealed class ExpressionEvaluator
         return Value.NullValue;
     }
 
-    private bool TryResolveGlobal(string name, out Value value)
+    private Value TryResolveGlobal(string name, out bool found)
     {
-        if (_interpreter._globals.TryGetValue(name, out value))
-            return true;
-        value = Value.NullValue;
-        return false;
+        // Return-buffer getter (no out Value) to avoid the freestanding ILC
+        // out-parameter struct-copy defect.
+        return _interpreter._globals.GetValue(name, out found);
     }
 
     private Value EvaluateCall(Lang.CallExpr expr)
@@ -404,7 +409,8 @@ internal sealed class ExpressionEvaluator
         var target = expr.Operand;
         if (target is Lang.IdentifierExpr id)
         {
-            if (!_ctx.CurrentFrame.Locals.TryGetValue(id.Name, out var current))
+            Value current = _ctx.CurrentFrame.Locals.GetValue(id.Name, out bool currentFound);
+            if (!currentFound)
             {
                 _ctx.Throw($"Undefined variable '{id.Name}'", expr.Location);
                 return Value.NullValue;

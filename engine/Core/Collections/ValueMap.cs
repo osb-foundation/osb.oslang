@@ -78,6 +78,22 @@ public sealed class ValueMap
         return false;
     }
 
+    /// <summary>
+    /// Return-buffer variant of TryGetValue. The Value is returned through the
+    /// caller's return buffer (like the indexer) rather than an out parameter.
+    /// This avoids the freestanding NativeAOT ILC out-parameter struct-copy
+    /// defect that zeroes the Value when the call immediately follows the
+    /// indexer (get_Item). The map logic and storage are unchanged.
+    /// </summary>
+    public Value GetValue(string key, out bool found)
+    {
+        if (key == null) { found = false; return Value.NullValue; }
+        int index = FindIndex(key);
+        if (index >= 0) { found = true; return MakeValue(index); }
+        found = false;
+        return Value.NullValue;
+    }
+
     public bool ContainsKey(string key)
     {
         if (key == null) return false;

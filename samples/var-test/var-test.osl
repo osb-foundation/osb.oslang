@@ -1,0 +1,40 @@
+' OSLANG variable round-trip + numeric formatting test for freestanding NativeAOT.
+' Verifies ValueMap storage/retrieval (string/number/boolean variables) and
+' Double.ToString() formatting (integers, fractions, negatives, arithmetic).
+FUNCTION MAIN()
+    PRINT "=== String variable test ==="
+    s = "hello world"
+    PRINT s
+
+    PRINT "=== Number variable test ==="
+    n = 42
+    PRINT n
+
+    PRINT "=== Boolean variable test ==="
+    b = TRUE
+    PRINT b
+
+    PRINT "=== String literal test ==="
+    PRINT "literal string"
+
+    PRINT "=== Number literal test ==="
+    PRINT 123
+
+    PRINT "=== Boolean literal test ==="
+    PRINT TRUE
+
+    PRINT "=== Fractional number test ==="
+    PRINT 3.25
+
+    PRINT "=== Negative number test ==="
+    PRINT -13.5
+
+    PRINT "=== Multiple variables ==="
+    x = 10
+    y = 20
+    PRINT x
+    PRINT y
+    PRINT x + y
+
+    PRINT "=== Test complete ==="
+END FUNCTION
