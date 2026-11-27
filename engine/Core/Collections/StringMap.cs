@@ -150,10 +150,14 @@ public sealed class StringMap<T>
             int probe = (index + i) & mask;
 
             if (!_occupied[probe])
+            {
                 return -1; // Empty slot - not found
+            }
 
             if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
+            {
                 return probe; // Found
+            }
         }
         return -1; // Full table (shouldn't happen with resize)
     }
@@ -162,7 +166,9 @@ public sealed class StringMap<T>
     {
         // Resize if needed
         if ((_count + _deletedCount + 1) > _keys.Length * MaxLoadFactor)
+        {
             Resize();
+        }
 
         int mask = _keys.Length - 1;
         int index = key.GetHashCode() & mask;

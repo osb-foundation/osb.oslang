@@ -36,7 +36,6 @@ public partial class Parser
         var body = ParseBlockUntil(TokenType.End);
         Expect(TokenType.End, "Expected END to close function");
         if (Check(TokenType.Function)) Advance(); // optional END FUNCTION
-
         return new FunctionDecl(name, parameters, body, start);
     }
 

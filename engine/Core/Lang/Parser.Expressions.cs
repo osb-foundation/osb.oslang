@@ -202,10 +202,14 @@ public partial class Parser
     {
         var tok = Current;
 
+        if (tok.Type == TokenType.StringLiteral)
+        {
+            return MakePrimary(new StringLiteralExpr(tok.StringValue!, tok.Location));
+        }
+
         return tok.Type switch
         {
             TokenType.NumberLiteral => MakePrimary(new NumberLiteralExpr(tok.NumberValue, tok.Location)),
-            TokenType.StringLiteral => MakePrimary(new StringLiteralExpr(tok.StringValue!, tok.Location)),
             TokenType.DateLiteral => MakePrimary(new DateLiteralExpr(tok.IntValue, tok.Location)),
             TokenType.TimeLiteral => MakePrimary(new TimeLiteralExpr(tok.LongValue, tok.Location)),
             TokenType.True => MakePrimary(new BooleanLiteralExpr(true, tok.Location)),

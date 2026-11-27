@@ -6,104 +6,130 @@ namespace Osb.Engine.Core.Lang;
 /// Keyword lookup table for the lexer.
 /// All keywords are stored in uppercase for case-insensitive matching (ASCII-only per SQ-002).
 /// Uses freestanding StringMap instead of BCL Dictionary.
+///
+/// The map is built lazily on first use via a static field with no explicit
+/// static constructor. Freestanding NativeAOT has no GC-statics / cctor-context
+/// initializer in the Ring 3 entry path (crt0 -> StartupCodeMain), so an
+/// explicit `static Keywords()` would leave the __GCSTATICS base uninitialized
+/// and fault on first access. Lazy field init matches the proven pattern used by
+/// MiniCoreLib (String.s_stringMethodTable) and the shell.
 /// </summary>
 internal static class Keywords
 {
-    private static readonly StringMap<TokenType> Map;
+    private static StringMap<ushort>? _map;
 
-    static Keywords()
+    private static StringMap<ushort> Map
     {
-        Map = new StringMap<TokenType>();
+        get
+        {
+            return _map ??= BuildMap();
+        }
+    }
+
+    private static StringMap<ushort> BuildMap()
+    {
+        var map = new StringMap<ushort>();
         // Core keywords (OSLANG 0.1+)
-        Map.Add("AND", TokenType.And);
-        Map.Add("BASE", TokenType.Base);
-        Map.Add("BOOLEAN", TokenType.Boolean);
-        Map.Add("BOOL", TokenType.Bool);
-        Map.Add("BREAK", TokenType.Break);
-        Map.Add("CATCH", TokenType.Catch);
-        Map.Add("CEIL", TokenType.Ceil);
-        Map.Add("CLASS", TokenType.Class);
-        Map.Add("CLEAR", TokenType.Clear);
-        Map.Add("CONSTRUCTOR", TokenType.Constructor);
-        Map.Add("CONTINUE", TokenType.Continue);
-        Map.Add("COUNT", TokenType.Count);
-        Map.Add("DO", TokenType.Do);
-        Map.Add("ELIF", TokenType.Elif);
-        Map.Add("ELSE", TokenType.Else);
-        Map.Add("END", TokenType.End);
-        Map.Add("FALSE", TokenType.False);
-        Map.Add("FLOOR", TokenType.Floor);
-        Map.Add("FOR", TokenType.For);
-        Map.Add("FUNCTION", TokenType.Function);
-        Map.Add("GLOBAL", TokenType.Global);
-        Map.Add("IF", TokenType.If);
-        Map.Add("INPUT", TokenType.Input);
-        Map.Add("INTERFACE", TokenType.Interface);
-        Map.Add("ME", TokenType.Me);
-        Map.Add("NEW", TokenType.New);
-        Map.Add("NOT", TokenType.Not);
-        Map.Add("NULL", TokenType.Null);
-        Map.Add("NUMBER", TokenType.Number);
-        Map.Add("OR", TokenType.Or);
-        Map.Add("POW", TokenType.Pow);
-        Map.Add("PRINT", TokenType.Print);
-        Map.Add("PRIVATE", TokenType.Private);
-        Map.Add("PROTECTED", TokenType.Protected);
-        Map.Add("PUBLIC", TokenType.Public);
-        Map.Add("RETURN", TokenType.Return);
-        Map.Add("SQRT", TokenType.Sqrt);
-        Map.Add("STEP", TokenType.Step);
-        Map.Add("STRING", TokenType.String);
-        Map.Add("STR", TokenType.Str);
-        Map.Add("THEN", TokenType.Then);
-        Map.Add("TO", TokenType.To);
-        Map.Add("TRUE", TokenType.True);
-        Map.Add("TRY", TokenType.Try);
-        Map.Add("TYPEOF", TokenType.TypeOf);
-        Map.Add("VAR", TokenType.Var);
-        Map.Add("WHILE", TokenType.While);
+        AddKeyword(map, "AND", TokenType.And);
+        AddKeyword(map, "BASE", TokenType.Base);
+        AddKeyword(map, "BOOLEAN", TokenType.Boolean);
+        AddKeyword(map, "BOOL", TokenType.Bool);
+        AddKeyword(map, "BREAK", TokenType.Break);
+        AddKeyword(map, "CATCH", TokenType.Catch);
+        AddKeyword(map, "CEIL", TokenType.Ceil);
+        AddKeyword(map, "CLASS", TokenType.Class);
+        AddKeyword(map, "CLEAR", TokenType.Clear);
+        AddKeyword(map, "CONSTRUCTOR", TokenType.Constructor);
+        AddKeyword(map, "CONTINUE", TokenType.Continue);
+        AddKeyword(map, "COUNT", TokenType.Count);
+        AddKeyword(map, "DO", TokenType.Do);
+        AddKeyword(map, "ELIF", TokenType.Elif);
+        AddKeyword(map, "ELSE", TokenType.Else);
+        AddKeyword(map, "END", TokenType.End);
+        AddKeyword(map, "FALSE", TokenType.False);
+        AddKeyword(map, "FLOOR", TokenType.Floor);
+        AddKeyword(map, "FOR", TokenType.For);
+        AddKeyword(map, "FUNCTION", TokenType.Function);
+        AddKeyword(map, "GLOBAL", TokenType.Global);
+        AddKeyword(map, "IF", TokenType.If);
+        AddKeyword(map, "INPUT", TokenType.Input);
+        AddKeyword(map, "INTERFACE", TokenType.Interface);
+        AddKeyword(map, "ME", TokenType.Me);
+        AddKeyword(map, "NEW", TokenType.New);
+        AddKeyword(map, "NOT", TokenType.Not);
+        AddKeyword(map, "NULL", TokenType.Null);
+        AddKeyword(map, "NUMBER", TokenType.Number);
+        AddKeyword(map, "OR", TokenType.Or);
+        AddKeyword(map, "POW", TokenType.Pow);
+        AddKeyword(map, "PRINT", TokenType.Print);
+        AddKeyword(map, "PRIVATE", TokenType.Private);
+        AddKeyword(map, "PROTECTED", TokenType.Protected);
+        AddKeyword(map, "PUBLIC", TokenType.Public);
+        AddKeyword(map, "RETURN", TokenType.Return);
+        AddKeyword(map, "SQRT", TokenType.Sqrt);
+        AddKeyword(map, "STEP", TokenType.Step);
+        AddKeyword(map, "STRING", TokenType.String);
+        AddKeyword(map, "STR", TokenType.Str);
+        AddKeyword(map, "THEN", TokenType.Then);
+        AddKeyword(map, "TO", TokenType.To);
+        AddKeyword(map, "TRUE", TokenType.True);
+        AddKeyword(map, "TRY", TokenType.Try);
+        AddKeyword(map, "TYPEOF", TokenType.TypeOf);
+        AddKeyword(map, "VAR", TokenType.Var);
+        AddKeyword(map, "WHILE", TokenType.While);
 
         // OSLANG 0.3
-        Map.Add("SWITCH", TokenType.Switch);
-        Map.Add("CASE", TokenType.Case);
-        Map.Add("DEFAULT", TokenType.Default);
-        Map.Add("VIRTUAL", TokenType.Virtual);
-        Map.Add("OVERRIDE", TokenType.Override);
-        Map.Add("EVENT", TokenType.Event);
-        Map.Add("ON", TokenType.On);
-        Map.Add("RAISE", TokenType.Raise);
-        Map.Add("USING", TokenType.Using);
+        AddKeyword(map, "SWITCH", TokenType.Switch);
+        AddKeyword(map, "CASE", TokenType.Case);
+        AddKeyword(map, "DEFAULT", TokenType.Default);
+        AddKeyword(map, "VIRTUAL", TokenType.Virtual);
+        AddKeyword(map, "OVERRIDE", TokenType.Override);
+        AddKeyword(map, "EVENT", TokenType.Event);
+        AddKeyword(map, "ON", TokenType.On);
+        AddKeyword(map, "RAISE", TokenType.Raise);
+        AddKeyword(map, "USING", TokenType.Using);
 
         // OSLANG 0.4
-        Map.Add("MATH", TokenType.Math);
-        Map.Add("FILE", TokenType.File);
-        Map.Add("DIR", TokenType.Dir);
+        AddKeyword(map, "MATH", TokenType.Math);
+        AddKeyword(map, "FILE", TokenType.File);
+        AddKeyword(map, "DIR", TokenType.Dir);
 
         // OSLANG 0.5
-        Map.Add("DATE", TokenType.Date);
-        Map.Add("TIME", TokenType.Time);
+        AddKeyword(map, "DATE", TokenType.Date);
+        AddKeyword(map, "TIME", TokenType.Time);
 
         // OSLANG 0.6
-        Map.Add("SHOW", TokenType.Show);
-        Map.Add("MOD", TokenType.Mod);
+        AddKeyword(map, "SHOW", TokenType.Show);
+        AddKeyword(map, "MOD", TokenType.Mod);
 
         // OSLANG 0.6 - Standard Library namespace
-        Map.Add("OSL", TokenType.Osl);
+        AddKeyword(map, "OSL", TokenType.Osl);
 
         // OSLANG 0.61
-        Map.Add("ENUM", TokenType.Enum);
+        AddKeyword(map, "ENUM", TokenType.Enum);
         // OSLANG 0.62
-        Map.Add("IN", TokenType.In);
-        Map.Add("EACH", TokenType.Each);
+        AddKeyword(map, "IN", TokenType.In);
+        AddKeyword(map, "EACH", TokenType.Each);
 
         // OSLANG 0.62
-        Map.Add("OSB", TokenType.Osb);
+        AddKeyword(map, "OSB", TokenType.Osb);
+        return map;
+    }
+
+    private static void AddKeyword(StringMap<ushort> map, string key, TokenType type)
+    {
+        map.Add(key, (ushort)type);
     }
 
     /// <summary>
     /// Attempts to look up a keyword. Uses ASCII-only case-insensitive comparison (SQ-002).
     /// </summary>
-    public static bool TryGetKeyword(string upperText, out TokenType type) => Map.TryGetValue(upperText, out type);
+    public static bool TryGetKeyword(string upperText, out TokenType type)
+    {
+        var result = Map.TryGetValue(upperText, out ushort value);
+        type = (TokenType)value;
+        return result;
+    }
 
     /// <summary>
     /// Checks if a token type is a keyword.

@@ -43,6 +43,14 @@ internal static class Program
         InterpreterTests.RunAll();
 
         Console.WriteLine();
+        Console.WriteLine("=== Interpreter Collection Iteration Tests (freestanding NodeList) ===");
+        InterpreterCollectionIterationTests.RunAll();
+
+        Console.WriteLine();
+        Console.WriteLine("=== HeapString / Provider Tests (freestanding concrete path) ===");
+        HeapStringProviderTests.RunAll();
+
+        Console.WriteLine();
         Console.WriteLine("=== Allocation Failure Reliability Tests ===");
         AllocationTests.RunAll();
 

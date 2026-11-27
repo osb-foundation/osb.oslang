@@ -106,8 +106,12 @@ public class FreestandingUtf8Provider : IUtf8Provider
     {
         if (bytes.Length == 0) return string.Empty;
 
-        // Decode with replacement for invalid sequences
-        var chars = new List<char>();
+        // Decode with replacement for invalid sequences.
+        // Uses a manual growable char buffer (no List<T> / Array.Copy) because
+        // freestanding NativeAOT's Array.Copy intrinsic is unreliable for List<T>
+        // growth, which silently drops/zeroes elements.
+        char[] buffer = new char[16];
+        int count = 0;
         int i = 0;
 
         while (i < bytes.Length)
@@ -117,7 +121,8 @@ public class FreestandingUtf8Provider : IUtf8Provider
             if (b <= 0x7F)
             {
                 // ASCII
-                chars.Add((char)b);
+                EnsureCapacity(ref buffer, count + 1);
+                buffer[count++] = (char)b;
                 i++;
             }
             else if ((b & 0xE0) == 0xC0)
@@ -125,14 +130,16 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 // 2-byte sequence
                 if (i + 1 >= bytes.Length)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
                 byte b2 = bytes[i + 1];
                 if ((b2 & 0xC0) != 0x80)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
@@ -140,11 +147,13 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 if (codePoint < 0x80)
                 {
                     // Overlong encoding
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i += 2;
                     continue;
                 }
-                chars.Add((char)codePoint);
+                EnsureCapacity(ref buffer, count + 1);
+                buffer[count++] = (char)codePoint;
                 i += 2;
             }
             else if ((b & 0xF0) == 0xE0)
@@ -152,7 +161,8 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 // 3-byte sequence
                 if (i + 2 >= bytes.Length)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
@@ -160,7 +170,8 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 byte b3 = bytes[i + 2];
                 if ((b2 & 0xC0) != 0x80 || (b3 & 0xC0) != 0x80)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
@@ -168,18 +179,21 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 if (codePoint < 0x800)
                 {
                     // Overlong encoding
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i += 3;
                     continue;
                 }
                 if (codePoint >= 0xD800 && codePoint <= 0xDFFF)
                 {
                     // Surrogate code points are invalid in UTF-8
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i += 3;
                     continue;
                 }
-                chars.Add((char)codePoint);
+                EnsureCapacity(ref buffer, count + 1);
+                buffer[count++] = (char)codePoint;
                 i += 3;
             }
             else if ((b & 0xF8) == 0xF0)
@@ -187,7 +201,8 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 // 4-byte sequence
                 if (i + 3 >= bytes.Length)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
@@ -196,7 +211,8 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 byte b4 = bytes[i + 3];
                 if ((b2 & 0xC0) != 0x80 || (b3 & 0xC0) != 0x80 || (b4 & 0xC0) != 0x80)
                 {
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i++;
                     continue;
                 }
@@ -204,32 +220,48 @@ public class FreestandingUtf8Provider : IUtf8Provider
                 if (codePoint < 0x10000)
                 {
                     // Overlong encoding
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i += 4;
                     continue;
                 }
                 if (codePoint > 0x10FFFF)
                 {
                     // Out of range
-                    chars.Add(ReplacementChar[0]);
+                    EnsureCapacity(ref buffer, count + 1);
+                    buffer[count++] = ReplacementChar[0];
                     i += 4;
                     continue;
                 }
                 // Encode as surrogate pair
                 codePoint -= 0x10000;
-                chars.Add((char)(0xD800 | (codePoint >> 10)));
-                chars.Add((char)(0xDC00 | (codePoint & 0x3FF)));
+                EnsureCapacity(ref buffer, count + 2);
+                buffer[count++] = (char)(0xD800 | (codePoint >> 10));
+                buffer[count++] = (char)(0xDC00 | (codePoint & 0x3FF));
                 i += 4;
             }
             else
             {
                 // Invalid leading byte
-                chars.Add(ReplacementChar[0]);
+                EnsureCapacity(ref buffer, count + 1);
+                buffer[count++] = ReplacementChar[0];
                 i++;
             }
         }
 
-        return new string(chars.ToArray());
+        return new string(buffer, 0, count);
+    }
+
+    private static void EnsureCapacity(ref char[] buffer, int required)
+    {
+        if (required <= buffer.Length) return;
+        int newSize = buffer.Length * 2;
+        if (newSize < required) newSize = required;
+        var newBuffer = new char[newSize];
+        // Manual copy (Array.Copy is unreliable in freestanding NativeAOT).
+        for (int i = 0; i < buffer.Length; i++)
+            newBuffer[i] = buffer[i];
+        buffer = newBuffer;
     }
 
     public bool IsValidUtf8(ReadOnlySpan<byte> bytes)

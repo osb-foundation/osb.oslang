@@ -24,7 +24,7 @@ public readonly struct SourceLocation
 /// <summary>
 /// A lexical token with type, text, location, and optional typed values.
 /// </summary>
-public readonly struct Token
+public struct Token
 {
     public readonly TokenType Type;
     public readonly string Text;

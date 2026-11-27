@@ -10,8 +10,13 @@ namespace Osb.Engine.Core.Providers;
 /// </summary>
 public sealed class OsbMemoryProvider : IMemoryProvider
 {
+#if FREESTANDING
+    // Freestanding Ring 3 only: the shared TLS allocation arena primitives are
+    // provided by OsbRuntimeExports (osb_tls_raw.S). They do not exist in the
+    // host (BCL) build, so all TLS access is confined to FREESTANDING.
     [DllImport("osbnative")] private static extern ulong osb_tls_get_alloc();
     [DllImport("osbnative")] private static extern void osb_tls_set_alloc(ulong v);
+#endif
     private readonly int _regionSize;
     private int _bumpPtr;
     private int _memGrowFrames;
@@ -74,10 +79,13 @@ public sealed class OsbMemoryProvider : IMemoryProvider
         // Sync bump pointer with the shared TLS allocation arena so that
         // managed allocations (RhNewString/RhpNewFast) and provider
         // allocations share one contiguous region without overlap.
+        int current = _bumpPtr;
+#if FREESTANDING
         ulong tlsAlloc = osb_tls_get_alloc();
         ulong baseAddr = (ulong)BaseAddress;
-        int current = (int)(tlsAlloc - baseAddr);
-        if (current < 0 || current > _regionSize) current = _bumpPtr;
+        int tlsCurrent = (int)(tlsAlloc - baseAddr);
+        if (tlsCurrent >= 0 && tlsCurrent <= _regionSize) current = tlsCurrent;
+#endif
 
         // Align current pointer
         int alignedPtr = (current + alignment - 1) & ~(alignment - 1);
@@ -90,7 +98,9 @@ public sealed class OsbMemoryProvider : IMemoryProvider
 
         IntPtr result = BaseAddress + alignedPtr;
         _bumpPtr = newPtr;
+#if FREESTANDING
         osb_tls_set_alloc(baseAddr + (ulong)newPtr);
+#endif
         return result;
     }
 

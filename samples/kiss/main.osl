@@ -78,6 +78,7 @@ CLASS KISS
         ELSE
             Lines = [""]
         END
+
     END
 
     FUNCTION SAVE()

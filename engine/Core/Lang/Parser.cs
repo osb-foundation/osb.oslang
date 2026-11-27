@@ -14,7 +14,10 @@ public partial class Parser
     private readonly IReadOnlyList<Token> _tokens;
     private int _pos;
 
-    public Parser(IReadOnlyList<Token> tokens) => _tokens = tokens;
+    public Parser(IReadOnlyList<Token> tokens) 
+    {
+        _tokens = tokens;
+    }
 
     public Program Parse()
     {
@@ -24,7 +27,6 @@ public partial class Parser
         var enums = new NodeList<EnumDecl>();
         var usings = new NodeList<UsingDecl>();
         var events = new NodeList<EventDecl>();
-
         while (!IsAtEnd && Current.Type != TokenType.Eof)
         {
             SkipNewlines();
@@ -66,7 +68,14 @@ public partial class Parser
     private bool Check(TokenType type) => !IsAtEnd && Current.Type == type;
     private bool CheckAny(params TokenType[] types) => !IsAtEnd && Array.IndexOf(types, Current.Type) >= 0;
 
-    private Token Current => IsAtEnd ? _tokens[_tokens.Count - 1] : _tokens[_pos];
+    private Token Current
+    {
+        get
+        {
+            if (IsAtEnd) return _tokens[_tokens.Count - 1];
+            return _tokens[_pos];
+        }
+    }
     private bool IsAtEnd => _pos >= _tokens.Count || _tokens[_pos].Type == TokenType.Eof;
 
     private Token Advance()

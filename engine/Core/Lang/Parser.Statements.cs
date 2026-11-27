@@ -189,14 +189,16 @@ public partial class Parser
         return new TryCatchStmt(tryBody, errorVar, catchBody, start);
     }
 
-    private PrintStmt ParsePrint()
+private PrintStmt ParsePrint()
     {
-        var start = Current.Location;
+        var currentToken = Current;
+        var start = currentToken.Location;
         Advance(); // PRINT
         var expressions = new NodeList<Expr>();
         if (!Check(TokenType.Newline) && !IsAtEnd)
         {
-            expressions.Add(ParseExpression());
+            var expr = ParseExpression();
+            expressions.Add(expr);
             while (Check(TokenType.Comma))
             {
                 Advance();

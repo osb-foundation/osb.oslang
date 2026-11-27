@@ -73,7 +73,11 @@ public sealed class StringBuffer
     private void GrowTo(int capacity)
     {
         var newChars = new char[capacity];
-        System.Array.Copy(_chars, newChars, _length);
+        // Manual copy instead of Array.Copy to avoid potential GC issues in freestanding NativeAOT
+        for (int i = 0; i < _length; i++)
+        {
+            newChars[i] = _chars[i];
+        }
         _chars = newChars;
     }
 

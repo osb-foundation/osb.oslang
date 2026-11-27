@@ -2,10 +2,6 @@ using System;
 using Osb.Engine.Core.Collections;
 using Osb.Engine.Core.Providers;
 
-#if FREESTANDING
-using OsbKT;
-#endif
-
 namespace Osb.Engine.Core.Lang;
 
 /// <summary>
@@ -25,18 +21,10 @@ public partial class Lexer
 
 #if FREESTANDING
     /// <summary>
-    /// Temporary O8.15.1 diagnostic output via Syscall.Write (no stackalloc,
-    /// no string pinning — avoids potential issues deep in the call stack).
+    /// O8.15.1 temporary diagnostic (now resolved). Retained as a no-op so the
+    /// call sites stay intact without emitting non-contractual marker output.
     /// </summary>
-    private static unsafe void Diag(string s)
-    {
-        if (s == null) return;
-        for (int i = 0; i < s.Length; i++)
-        {
-            byte b = (byte)s[i];
-            Syscall.Write(&b, 1);
-        }
-    }
+    private static void Diag(string s) { }
 #else
     private static void Diag(string s) { }
 #endif
@@ -53,16 +41,11 @@ public partial class Lexer
     public NodeList<Token> Tokenize()
     {
         var tokens = new NodeList<Token>();
-        Diag("TK_ENTER");
         while (!IsAtEnd)
         {
-            Diag("TK_LOOP");
             tokens.Add(NextToken());
-            Diag("TK_ADDED");
         }
-        Diag("TK_EOF");
         tokens.Add(new Token(TokenType.Eof, "", CurrentLocation));
-        Diag("TK_EXIT");
         return tokens;
     }
 
@@ -185,9 +168,14 @@ public partial class Lexer
         var text = sb.ToString();
         var upper = ToUpperInvariant(text); // ASCII-only per SQ-002
 
-        return Keywords.TryGetKeyword(upper, out var keywordType)
-            ? new Token(keywordType, text, start)
-            : new Token(TokenType.Identifier, text, start);
+        if (Keywords.TryGetKeyword(upper, out var keywordType))
+        {
+            return new Token(keywordType, text, start);
+        }
+        else
+        {
+            return new Token(TokenType.Identifier, text, start);
+        }
     }
 
     private Token ReadNumber(SourceLocation start)

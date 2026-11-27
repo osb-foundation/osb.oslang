@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Osb.Engine.Core.Collections;
 using Osb.Engine.Core.Lang;
 using Osb.Engine.Core.Values;
 using Osb.Engine.Core.Providers;
@@ -26,8 +27,9 @@ internal static class NamespaceEvaluator
         IMathProvider math, ITimeProvider time, IRandomProvider random, IUtf8Provider utf8)
     {
         var args = new List<Value>();
-        foreach (var arg in expr.Args)
-            args.Add(interpreter.Evaluate(arg));
+        var callArgs = expr.Args;
+        for (int i = 0; i < CollectionIteration.Count(callArgs); i++)
+            args.Add(interpreter.Evaluate(CollectionIteration.Get(callArgs, i)));
 
         if (StandardLibrary.TryCallNamespace(expr.NamespaceName, expr.NamespaceName, args, expr.Location, ctx, math, time, random, utf8, out var result))
             return result;

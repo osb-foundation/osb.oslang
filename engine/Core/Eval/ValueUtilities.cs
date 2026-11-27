@@ -1,3 +1,5 @@
+using Osb.Engine.Core.Collections;
+using Osb.Engine.Core.Lang;
 using Osb.Engine.Core.Values;
 
 namespace Osb.Engine.Core.Eval;
@@ -62,9 +64,11 @@ internal static class ValueUtilities
         if (typeIndex >= 0 && typeIndex < interpreter._enumNames.Count)
         {
             var enumName = interpreter._enumNames[typeIndex];
-            if (interpreter._enums.TryGetValue(enumName, out var enumDecl) && memberIndex >= 0 && memberIndex < enumDecl.Members.Count)
+            if (interpreter._enums.TryGetValue(enumName, out var enumDecl))
             {
-                return $"{enumName.ToUpperInvariant()}.{enumDecl.Members[memberIndex].Name}";
+                var members = enumDecl.Members;
+                if (memberIndex >= 0 && memberIndex < CollectionIteration.Count(members))
+                    return $"{enumName.ToUpperInvariant()}.{CollectionIteration.Get(members, memberIndex).Name}";
             }
         }
         return $"ENUM#{typeIndex}.{memberIndex}";

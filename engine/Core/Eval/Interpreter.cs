@@ -56,10 +56,20 @@ public sealed class Interpreter
     /// </summary>
     public Value Execute(Lang.Program program)
     {
-        foreach (var fn in program.Functions) RegisterFunction(fn);
-        foreach (var cls in program.Classes) RegisterClass(CreateHeapClass(cls));
-        foreach (var en in program.Enums) RegisterEnum(en);
-        foreach (var u in program.Usings) RegisterUsing(u);
+        // Freestanding-safe indexed iteration over the program collections.
+        // The parser backs these with NodeList<T>; in the freestanding runtime
+        // interface dispatch on IReadOnlyList<T> returns 0/empty, so a foreach
+        // or interface-Count loop would silently register nothing (MAIN never
+        // inserted -> lookup fails). CollectionIteration uses the concrete
+        // NodeList<T> Count/indexer when available.
+        var functions = program.Functions;
+        for (int i = 0; i < CollectionIteration.Count(functions); i++) RegisterFunction(CollectionIteration.Get(functions, i));
+        var classes = program.Classes;
+        for (int i = 0; i < CollectionIteration.Count(classes); i++) RegisterClass(CreateHeapClass(CollectionIteration.Get(classes, i)));
+        var enums = program.Enums;
+        for (int i = 0; i < CollectionIteration.Count(enums); i++) RegisterEnum(CollectionIteration.Get(enums, i));
+        var usings = program.Usings;
+        for (int i = 0; i < CollectionIteration.Count(usings); i++) RegisterUsing(CollectionIteration.Get(usings, i));
 
         if (!_functions.TryGetValue("MAIN", out var mainFn))
         {
@@ -72,14 +82,17 @@ public sealed class Interpreter
 
     private HeapClass CreateHeapClass(Lang.ClassDecl decl)
     {
-        var baseClass = decl.BaseClasses.Count > 0 && _classes.TryGetValue(decl.BaseClasses[0], out var baseCls)
+        var baseClasses = decl.BaseClasses;
+        var members = decl.Members;
+        var baseClass = CollectionIteration.Count(baseClasses) > 0 && _classes.TryGetValue(CollectionIteration.Get(baseClasses, 0), out var baseCls)
             ? baseCls : null;
 
         var fieldNames = new List<string>();
         var methods = new List<Lang.MethodDecl>();
 
-        foreach (var member in decl.Members)
+        for (int mi = 0; mi < CollectionIteration.Count(members); mi++)
         {
+            var member = CollectionIteration.Get(members, mi);
             switch (member)
             {
                 case Lang.PropertyDecl prop:
@@ -106,24 +119,28 @@ public sealed class Interpreter
 
     internal Value CallFunction(Lang.FunctionDecl fn, IReadOnlyList<Value> args, SourceLocation location)
     {
-        if (args.Count != fn.Parameters.Count)
+        var parameters = fn.Parameters;
+        var body = fn.Body;
+        int argCount = CollectionIteration.Count(args);
+        int paramCount = CollectionIteration.Count(parameters);
+        if (argCount != paramCount)
         {
-            _ctx.Throw($"Function '{fn.Name}' expects {fn.Parameters.Count} arguments, got {args.Count}", location);
+            _ctx.Throw($"Function '{fn.Name}' expects {paramCount} arguments, got {argCount}", location);
             return Value.NullValue;
         }
 
         var frame = new Frame(fn);
-        for (int i = 0; i < fn.Parameters.Count; i++)
+        for (int i = 0; i < paramCount; i++)
         {
-            frame.Locals[fn.Parameters[i].Name] = args[i];
+            frame.Locals[CollectionIteration.Get(parameters, i).Name] = CollectionIteration.Get(args, i);
         }
 
         _ctx.PushFrame(frame);
         _ctx.CurrentFlow = ControlFlow.Normal;
 
-        foreach (var stmt in fn.Body)
+        for (int si = 0; si < CollectionIteration.Count(body); si++)
         {
-            _statements.Execute(stmt);
+            _statements.Execute(CollectionIteration.Get(body, si));
             if (_ctx.CurrentFlow != ControlFlow.Normal)
                 break;
         }
@@ -141,26 +158,30 @@ public sealed class Interpreter
 
     internal Value CallMethod(HeapObjectInstance instance, Lang.MethodDecl method, IReadOnlyList<Value> args, SourceLocation location)
     {
-        if (args.Count != method.Parameters.Count)
+        var parameters = method.Parameters;
+        var body = method.Body;
+        int argCount = CollectionIteration.Count(args);
+        int paramCount = CollectionIteration.Count(parameters);
+        if (argCount != paramCount)
         {
-            _ctx.Throw($"Method '{method.Name}' expects {method.Parameters.Count} arguments, got {args.Count}", location);
+            _ctx.Throw($"Method '{method.Name}' expects {paramCount} arguments, got {argCount}", location);
             return Value.NullValue;
         }
 
         var fn = new Lang.FunctionDecl(method.Name, method.Parameters, method.Body, location);
 
         var frame = new Frame(fn, Value.Object(instance), Value.NullValue);
-        for (int i = 0; i < method.Parameters.Count; i++)
+        for (int i = 0; i < paramCount; i++)
         {
-            frame.Locals[method.Parameters[i].Name] = args[i];
+            frame.Locals[CollectionIteration.Get(parameters, i).Name] = CollectionIteration.Get(args, i);
         }
 
         _ctx.PushFrame(frame);
         _ctx.CurrentFlow = ControlFlow.Normal;
 
-        foreach (var stmt in method.Body)
+        for (int si = 0; si < CollectionIteration.Count(body); si++)
         {
-            _statements.Execute(stmt);
+            _statements.Execute(CollectionIteration.Get(body, si));
             if (_ctx.CurrentFlow != ControlFlow.Normal)
                 break;
         }
