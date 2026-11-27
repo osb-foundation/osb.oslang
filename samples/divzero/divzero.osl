@@ -1,0 +1,4 @@
+FUNCTION MAIN()
+    VAR x
+    x = 1 / 0
+END FUNCTION
