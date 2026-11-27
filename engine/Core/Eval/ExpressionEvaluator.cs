@@ -107,6 +107,8 @@ internal sealed class ExpressionEvaluator
 
     private bool TryResolveGlobal(string name, out Value value)
     {
+        if (_interpreter._globals.TryGetValue(name, out value))
+            return true;
         value = Value.NullValue;
         return false;
     }
@@ -149,6 +151,13 @@ internal sealed class ExpressionEvaluator
         if (expr.Object is Lang.NamespaceExpr ns)
         {
             if (StandardLibrary.TryCallNamespace(ns.NamespaceName, expr.MethodName, args, expr.Location, _ctx, _math, _time, _random, _utf8, out var result))
+                return result;
+        }
+
+        if (expr.Object is Lang.MemberAccessExpr ma && ma.Object is Lang.NamespaceExpr os && os.NamespaceName == "OSL")
+        {
+            var fullNs = "OSL." + ma.MemberName;
+            if (StandardLibrary.TryCallOslNamespace(fullNs, expr.MethodName, args, expr.Location, _ctx, _math, _time, _random, _utf8, out var result))
                 return result;
         }
 
@@ -196,8 +205,11 @@ internal sealed class ExpressionEvaluator
                 var members = enumDecl.Members;
                 for (int i = 0; i < CollectionIteration.Count(members); i++)
                 {
-                    if (CollectionIteration.Get(members, i).Name.Equals(expr.MemberName, StringComparison.OrdinalIgnoreCase))
+                    var member = CollectionIteration.Get(members, i);
+                    if (member.Name.Equals(expr.MemberName, StringComparison.OrdinalIgnoreCase))
                     {
+                        if (member.Value is Lang.NumberLiteralExpr numExpr)
+                            return Value.Number(numExpr.Value);
                         int typeIndex = GetOrCreateEnumTypeIndex(enumId.Name);
                         return Value.Enum(typeIndex, i);
                     }
@@ -222,6 +234,17 @@ internal sealed class ExpressionEvaluator
 
             if (fieldIndex >= 0 && fieldIndex < instance.Fields.Length)
                 return instance.Fields[fieldIndex];
+        }
+
+        if (obj.Kind == ValueKind.KeyEvent)
+        {
+            var evt = obj.AsKeyEvent;
+            var name = expr.MemberName.ToUpperInvariant();
+            if (name == "KEY") return Value.Number(evt.KeyCode);
+            if (name == "CHAR") return Value.String(_ctx.Heap.AllocString(evt.Character.ToString()));
+            if (name == "CTRL") return Value.Boolean(evt.Ctrl);
+            if (name == "ALT") return Value.Boolean(evt.Alt);
+            if (name == "SHIFT") return Value.Boolean(evt.Shift);
         }
 
         _ctx.Throw($"Member '{expr.MemberName}' not found", expr.Location);

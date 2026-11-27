@@ -13,4 +13,25 @@ public interface IHostApi
     string? ReadLine();
     void Clear();
     void Exit(int code = 0);
+    string? GetCwd();
+
+    // Console services (OSL.CONSOLE namespace)
+    void ConsoleEnter();
+    void ConsoleAlternate(bool on);
+    void ConsoleHideCursor();
+    void ConsoleShowCursor();
+    void ConsoleExit();
+    void ConsoleGetKey(out int keyCode, out char character, out bool ctrl);
+    void ConsoleSize(out int width, out int height);
+    void ConsoleBeginFrame();
+    void ConsoleEndFrame();
+    void ConsoleWrite(int row, int col, string text);
+    void ConsoleSetCursor(int row, int col);
+    void ConsoleShow(string text);
+    string ConsoleInput();
+
+    // File services (OSL.FILE namespace)
+    bool FileExists(string path);
+    string[] FileReadLines(string path);
+    void FileWriteLines(string path, string[] lines);
 }

@@ -62,7 +62,7 @@ public sealed class Frame
     public readonly Lang.FunctionDecl Function;
     public readonly Value This; // ME for methods, null for functions
     public readonly Value Base; // BASE for constructors
-    public readonly StringMap<Value> Locals = new(8, StringComparer.OrdinalIgnoreCase);
+    public readonly ValueMap Locals = new(8, StringComparer.OrdinalIgnoreCase);
     public int InstructionPointer = 0;
     public int LoopDepth = 0;
     public bool InTry = false;

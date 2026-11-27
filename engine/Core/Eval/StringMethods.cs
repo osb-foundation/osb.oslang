@@ -18,6 +18,11 @@ public static class StringMethods
             "TOLOWER" => StringToLower(str, ctx, utf8),
             "LENGTH" or "COUNT" => Value.Number(str.CodePointCount),
             "SUBSTRING" or "SUBSTR" => StringSubstring(str, args, ctx, utf8),
+            "LEFT" => StringLeft(str, args, ctx, utf8),
+            "RIGHT" => StringRight(str, args, ctx, utf8),
+            "REPEAT" => StringRepeat(str, args, ctx),
+            "INSERT" => StringInsert(str, args, ctx),
+            "REMOVE" => StringRemove(str, args, ctx),
             "INDEXOF" => StringIndexOf(str, args, ctx, utf8),
             "TRIM" => StringTrim(str, ctx, utf8),
             _ => Value.NullValue,
@@ -85,4 +90,55 @@ public static class StringMethods
     }
 
     private static bool IsAsciiWhitespace(byte b) => b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D || b == 0x0B || b == 0x0C;
+
+    private static Value StringLeft(HeapString str, IReadOnlyList<Value> args, ExecutionContext ctx, IUtf8Provider utf8)
+    {
+        if (args.Count != 1 || args[0].Kind != ValueKind.Number) return Value.NullValue;
+        int n = (int)args[0].AsNumber;
+        if (n < 0 || n > str.CodePointCount) return Value.NullValue;
+        var sub = str.SubstringByCodePoints(0, n);
+        return Value.String(ctx.Heap.AllocString(sub.ToString()));
+    }
+
+    private static Value StringRight(HeapString str, IReadOnlyList<Value> args, ExecutionContext ctx, IUtf8Provider utf8)
+    {
+        if (args.Count != 1 || args[0].Kind != ValueKind.Number) return Value.NullValue;
+        int n = (int)args[0].AsNumber;
+        if (n < 0 || n > str.CodePointCount) return Value.NullValue;
+        var sub = str.SubstringByCodePoints(str.CodePointCount - n, n);
+        return Value.String(ctx.Heap.AllocString(sub.ToString()));
+    }
+
+    private static Value StringRepeat(HeapString str, IReadOnlyList<Value> args, ExecutionContext ctx)
+    {
+        if (args.Count != 1 || args[0].Kind != ValueKind.Number) return Value.NullValue;
+        int n = (int)args[0].AsNumber;
+        if (n < 0) return Value.NullValue;
+        var text = str.ToString();
+        string result = "";
+        for (int i = 0; i < n; i++) result += text;
+        return Value.String(ctx.Heap.AllocString(result));
+    }
+
+    private static Value StringInsert(HeapString str, IReadOnlyList<Value> args, ExecutionContext ctx)
+    {
+        if (args.Count != 2 || args[0].Kind != ValueKind.Number || args[1].Kind != ValueKind.String) return Value.NullValue;
+        int col = (int)args[0].AsNumber;
+        var ins = args[1].AsString.ToString();
+        if (col < 0 || col > str.CodePointCount) return Value.NullValue;
+        var before = str.SubstringByCodePoints(0, col).ToString();
+        var after = str.SubstringByCodePoints(col, str.CodePointCount - col).ToString();
+        return Value.String(ctx.Heap.AllocString(before + ins + after));
+    }
+
+    private static Value StringRemove(HeapString str, IReadOnlyList<Value> args, ExecutionContext ctx)
+    {
+        if (args.Count != 2 || args[0].Kind != ValueKind.Number || args[1].Kind != ValueKind.Number) return Value.NullValue;
+        int start = (int)args[0].AsNumber;
+        int count = (int)args[1].AsNumber;
+        if (start < 0 || count < 0 || start + count > str.CodePointCount) return Value.NullValue;
+        var before = str.SubstringByCodePoints(0, start).ToString();
+        var after = str.SubstringByCodePoints(start + count, str.CodePointCount - start - count).ToString();
+        return Value.String(ctx.Heap.AllocString(before + after));
+    }
 }

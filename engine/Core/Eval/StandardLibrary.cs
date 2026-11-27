@@ -75,6 +75,11 @@ public static class StandardLibrary
             result = StringOp(args, s => Value.String(ctx.Heap.AllocString(s.ToString().Trim())), location, ctx, utf8);
             return true;
         }
+        if (upper == "PWD")
+        {
+            result = Value.String(ctx.Heap.AllocString(ctx.Host.GetCwd() ?? ""));
+            return true;
+        }
 
         result = Value.NullValue;
         return false;
@@ -94,9 +99,23 @@ public static class StandardLibrary
         {
             return DateTimeNamespace.Call(upperNs, upperMethod, args, location, ctx, math, time, random, utf8, out result);
         }
+        if (upperNs == "OSL.CONSOLE")
+        {
+            return OsbConsoleNamespace.Call(upperMethod, args, location, ctx, out result);
+        }
+        if (upperNs == "OSL.FILE")
+        {
+            return OsbFileNamespace.Call(upperMethod, args, location, ctx, out result);
+        }
 
         result = Value.NullValue;
         return false;
+    }
+
+    public static bool TryCallOslNamespace(string fullNs, string method, IReadOnlyList<Value> args, SourceLocation location, ExecutionContext ctx,
+        IMathProvider math, ITimeProvider time, IRandomProvider random, IUtf8Provider utf8, out Value result)
+    {
+        return TryCallNamespace(fullNs, method, args, location, ctx, math, time, random, utf8, out result);
     }
 
     private static Value Count(Value value, SourceLocation location, ExecutionContext ctx, IUtf8Provider utf8)

@@ -255,11 +255,11 @@ public sealed class HeapClosure : HeapObject
 /// </summary>
 public sealed class HeapKeyEvent : HeapObject
 {
-    public readonly int KeyCode;     // KEYCODE enum member index
-    public readonly char Character;  // printable character or '\0'
-    public readonly bool Ctrl;
-    public readonly bool Alt;
-    public readonly bool Shift;
+    public int KeyCode;     // KEYCODE enum member index
+    public char Character;  // printable character or '\0'
+    public bool Ctrl;
+    public bool Alt;
+    public bool Shift;
 
     public override ValueKind Kind => ValueKind.KeyEvent;
 

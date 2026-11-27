@@ -3,7 +3,7 @@ using OsbKT;
 /// <summary>
 /// Freestanding OSB Ring3 host API (osbkt syscalls); no BCL, MiniCoreLib String.
 /// </summary>
-internal sealed unsafe class OsbHostApi : Osb.Engine.Core.Host.IHostApi
+internal sealed unsafe partial class OsbHostApi : Osb.Engine.Core.Host.IHostApi
 {
     private const int InputBufferSize = 256;
 
@@ -279,7 +279,29 @@ var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
             var program = parser.Parse();
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
-            interpreter.Execute(program);
+
+        // Expose ARGS (everything after the script path on the command line) as a
+        // global string array so OSLANG scripts can access command-line arguments.
+        int argPos = scriptPath.Length;
+        while (argPos < argsStr.Length && argsStr[argPos] == ' ') argPos++;
+        int argCount = 0;
+        for (int p = argPos; p < argsStr.Length; p++)
+            if (argsStr[p] != ' ') { argCount++; while (p < argsStr.Length && argsStr[p] != ' ') p++; }
+        var argsArr = heap.AllocArray(argCount);
+        int ai = 0;
+        for (int p = argPos; p < argsStr.Length && ai < argCount; p++)
+        {
+            if (argsStr[p] == ' ') continue;
+            int start = p;
+            while (p < argsStr.Length && argsStr[p] != ' ') p++;
+            int len = p - start;
+            var chars = stackalloc char[len];
+            for (int k = 0; k < len; k++) chars[k] = argsStr[start + k];
+            argsArr.Items[ai++] = Osb.Engine.Core.Values.Value.String(heap.AllocString(new string(chars, len)));
+        }
+        interpreter.SetGlobal("ARGS", Osb.Engine.Core.Values.Value.Array(argsArr));
+
+        interpreter.Execute(program);
             if (interpreter.CurrentFlow == Osb.Engine.Core.Eval.ControlFlow.Exception)
             {
                 Syscall.PrintString("Runtime error: ");

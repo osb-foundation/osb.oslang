@@ -24,6 +24,7 @@ public sealed class Interpreter
     internal readonly StringMap<Lang.EnumDecl> _enums = new(8, StringComparer.OrdinalIgnoreCase);
     internal readonly UsingList _usings = new();
     internal readonly StringMap<NativeFunction> _extensions = new(8, StringComparer.OrdinalIgnoreCase);
+    internal readonly ValueMap _globals = new(8, StringComparer.OrdinalIgnoreCase);
 
     internal readonly IMathProvider _math;
     internal readonly ITimeProvider _time;
@@ -50,6 +51,7 @@ public sealed class Interpreter
     public void RegisterEnum(Lang.EnumDecl en) => _enums[en.Name] = en;
     public void RegisterUsing(Lang.UsingDecl u) => _usings.Add(u);
     public void RegisterExtension(string name, NativeFunction fn) => _extensions[name] = fn;
+    public void SetGlobal(string name, Value value) => _globals[name] = value;
 
     /// <summary>
     /// Executes a program starting from MAIN().
@@ -68,6 +70,31 @@ public sealed class Interpreter
         for (int i = 0; i < CollectionIteration.Count(classes); i++) RegisterClass(CreateHeapClass(CollectionIteration.Get(classes, i)));
         var enums = program.Enums;
         for (int i = 0; i < CollectionIteration.Count(enums); i++) RegisterEnum(CollectionIteration.Get(enums, i));
+
+        // Built-in KEYCODE enum (PC key codes), used by KISS and other OSLANG programs.
+        // Member values are stored as NumberLiteralExpr so EvaluateMemberAccess
+        // returns Value.Number(memberValue) — matching Key.KEY (the raw key code).
+        var keycodeMembers = new Lang.EnumMemberDecl[]
+        {
+            new Lang.EnumMemberDecl("UNKNOWN", new Lang.NumberLiteralExpr(0, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("ENTER", new Lang.NumberLiteralExpr(13, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("ESC", new Lang.NumberLiteralExpr(27, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("BACKSPACE", new Lang.NumberLiteralExpr(8, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("TAB", new Lang.NumberLiteralExpr(9, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("SPACE", new Lang.NumberLiteralExpr(32, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("UP", new Lang.NumberLiteralExpr(101, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("DOWN", new Lang.NumberLiteralExpr(102, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("RIGHT", new Lang.NumberLiteralExpr(103, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("LEFT", new Lang.NumberLiteralExpr(104, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("HOME", new Lang.NumberLiteralExpr(105, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("END", new Lang.NumberLiteralExpr(106, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("PAGEUP", new Lang.NumberLiteralExpr(107, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("PAGEDOWN", new Lang.NumberLiteralExpr(108, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("DELETE", new Lang.NumberLiteralExpr(109, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("F1", new Lang.NumberLiteralExpr(110, SourceLocation.Unknown), SourceLocation.Unknown),
+            new Lang.EnumMemberDecl("F12", new Lang.NumberLiteralExpr(111, SourceLocation.Unknown), SourceLocation.Unknown),
+        };
+        RegisterEnum(new Lang.EnumDecl("KEYCODE", keycodeMembers, SourceLocation.Unknown));
         var usings = program.Usings;
         for (int i = 0; i < CollectionIteration.Count(usings); i++) RegisterUsing(CollectionIteration.Get(usings, i));
 

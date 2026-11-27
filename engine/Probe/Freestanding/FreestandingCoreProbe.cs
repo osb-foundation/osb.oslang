@@ -257,32 +257,32 @@ END FUNCTION
         {
         }
 
-        public void Exit(int code = 0)
-        {
-            Syscall.Exit(code);
-        }
-    }
-
-    /// <summary>
-    /// TLS and NativeAOT helper stubs for freestanding OSB Ring3.
-    /// </summary>
-    internal static class OsbNative
+    public void Exit(int code = 0)
     {
-        [DllImport("osbnative")]
-        public static extern ulong osb_tls_tp();
-
-        [DllImport("osbnative")]
-        public static extern ulong osb_tls_get_alloc();
-
-        [DllImport("osbnative")]
-        public static extern ulong osb_tls_get_limit();
-
-        [DllImport("osbnative")]
-        public static extern void osb_tls_set_alloc(ulong v);
-
-        [DllImport("osbnative")]
-        public static extern void osb_tls_set_limit(ulong v);
+        Syscall.Exit(code);
     }
+
+    public string? GetCwd() => null;
+
+    public void ConsoleEnter() { }
+    public void ConsoleAlternate(bool on) { }
+    public void ConsoleHideCursor() { }
+    public void ConsoleShowCursor() { }
+    public void ConsoleExit() { }
+    public void ConsoleGetKey(out int keyCode, out char character, out bool ctrl)
+    { keyCode = 0; character = '\0'; ctrl = false; }
+    public void ConsoleSize(out int width, out int height) { width = 80; height = 25; }
+    public void ConsoleBeginFrame() { }
+    public void ConsoleEndFrame() { }
+    public void ConsoleWrite(int row, int col, string text) { Output += text; }
+    public void ConsoleSetCursor(int row, int col) { }
+    public void ConsoleShow(string text) => Output += text;
+    public string ConsoleInput() => string.Empty;
+
+    public bool FileExists(string path) => false;
+    public string[] FileReadLines(string path) => Array.Empty<string>();
+    public void FileWriteLines(string path, string[] lines) { }
+}
 
     // Minimal freestanding providers
     internal sealed class DefaultMathProvider : IMathProvider

@@ -1,7 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
-
-using System;
 
 namespace Osb.Engine.Core.Collections;
 
@@ -9,25 +6,32 @@ namespace Osb.Engine.Core.Collections;
 /// Freestanding string-keyed map using open addressing with linear probing.
 /// No BCL dependencies. Simple, deterministic, suitable for small-to-medium maps.
 /// Supports both reference and value types.
+/// Values are stored in Slot wrapper objects on the heap so that struct types
+/// (e.g. Value) survive array element read/write in freestanding NativeAOT,
+/// where T[] element access for structs is unreliable.
 /// </summary>
 public sealed class StringMap<T>
 {
+    private sealed class Slot
+    {
+        public T Value;
+    }
+
     private string[] _keys;
-    private T[] _values;
+    private Slot[] _slots;
     private bool[] _occupied;
     private int _count;
     private int _deletedCount;
     private bool[] _deleted;
     private readonly StringComparer _comparer;
 
-    // Load factor threshold for resizing
     private const float MaxLoadFactor = 0.75f;
 
     public StringMap(int initialCapacity = 8, StringComparer? comparer = null)
     {
         int capacity = RoundUpToPowerOfTwo(System.Math.Max(8, initialCapacity));
         _keys = new string[capacity];
-        _values = new T[capacity];
+        _slots = new Slot[capacity];
         _occupied = new bool[capacity];
         _deleted = new bool[capacity];
         _count = 0;
@@ -44,7 +48,7 @@ public sealed class StringMap<T>
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             int index = FindIndex(key);
-            if (index >= 0) return _values[index];
+            if (index >= 0) return _slots[index].Value;
             throw new KeyNotFoundException();
         }
         set
@@ -60,7 +64,7 @@ public sealed class StringMap<T>
         int index = FindIndex(key);
         if (index >= 0)
         {
-            value = _values[index];
+            value = _slots[index].Value;
             return true;
         }
         value = default!;
@@ -80,7 +84,7 @@ public sealed class StringMap<T>
         if (index < 0) return false;
 
         _keys[index] = null;
-        _values[index] = default!;
+        _slots[index] = null!;
         _occupied[index] = true;
         _deleted[index] = true;
         _count--;
@@ -93,7 +97,7 @@ public sealed class StringMap<T>
         if (_count > 0 || _deletedCount > 0)
         {
             System.Array.Clear(_keys, 0, _keys.Length);
-            System.Array.Clear(_values, 0, _values.Length);
+            System.Array.Clear(_slots, 0, _slots.Length);
             System.Array.Clear(_occupied, 0, _occupied.Length);
             System.Array.Clear(_deleted, 0, _deleted.Length);
             _count = 0;
@@ -131,7 +135,7 @@ public sealed class StringMap<T>
             get
             {
                 var key = _map._keys[_index];
-                var value = _map._values[_index];
+                var value = _map._slots[_index].Value;
                 _index++;
                 return (key!, value!);
             }
@@ -143,35 +147,30 @@ public sealed class StringMap<T>
     private int FindIndex(string key)
     {
         int mask = _keys.Length - 1;
-        int index = key.GetHashCode() & mask;
+        int index = StringHash(key) & mask;
 
         for (int i = 0; i < _keys.Length; i++)
         {
             int probe = (index + i) & mask;
 
             if (!_occupied[probe])
-            {
-                return -1; // Empty slot - not found
-            }
+                return -1;
 
             if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
-            {
-                return probe; // Found
-            }
+                return probe;
         }
-        return -1; // Full table (shouldn't happen with resize)
+        return -1;
     }
 
     private void Insert(string key, T value)
     {
-        // Resize if needed
         if ((_count + _deletedCount + 1) > _keys.Length * MaxLoadFactor)
         {
             Resize();
         }
 
         int mask = _keys.Length - 1;
-        int index = key.GetHashCode() & mask;
+        int index = StringHash(key) & mask;
         int firstDeleted = -1;
 
         for (int i = 0; i < _keys.Length; i++)
@@ -182,7 +181,9 @@ public sealed class StringMap<T>
             {
                 int target = firstDeleted >= 0 ? firstDeleted : probe;
                 _keys[target] = key;
-                _values[target] = value;
+                var slot = new Slot();
+                slot.Value = value;
+                _slots[target] = slot;
                 _occupied[target] = true;
                 _deleted[target] = false;
                 if (firstDeleted >= 0) _deletedCount--;
@@ -192,7 +193,7 @@ public sealed class StringMap<T>
 
             if (!_deleted[probe] && _comparer.Equals(_keys[probe], key))
             {
-                _values[probe] = value;
+                _slots[probe].Value = value;
                 return;
             }
 
@@ -200,7 +201,6 @@ public sealed class StringMap<T>
                 firstDeleted = probe;
         }
 
-        // Should never reach here if resize works correctly
         throw new InvalidOperationException("StringMap: Insertion failed - table full");
     }
 
@@ -208,12 +208,12 @@ public sealed class StringMap<T>
     {
         int newCapacity = _keys.Length * 2;
         var oldKeys = _keys;
-        var oldValues = _values;
+        var oldSlots = _slots;
         var oldOccupied = _occupied;
         var oldDeleted = _deleted;
 
         _keys = new string[newCapacity];
-        _values = new T[newCapacity];
+        _slots = new Slot[newCapacity];
         _occupied = new bool[newCapacity];
         _deleted = new bool[newCapacity];
         _count = 0;
@@ -223,9 +223,17 @@ public sealed class StringMap<T>
         {
             if (oldOccupied[i] && !oldDeleted[i] && oldKeys[i] != null)
             {
-                Insert(oldKeys[i], oldValues[i]);
+                Insert(oldKeys[i], oldSlots[i].Value);
             }
         }
+    }
+
+    private static int StringHash(string s)
+    {
+        int hash = 0;
+        for (int i = 0; i < s.Length; i++)
+            hash = hash * 31 + s[i];
+        return hash;
     }
 
     private static int RoundUpToPowerOfTwo(int v)
