@@ -5,12 +5,12 @@ namespace Osb.Engine.Core.Collections;
 
 /// <summary>
 /// Freestanding string-keyed map specialized for Value storage.
-/// object[] reads work (proven via _heapRefs), so Value components are
-/// stored in separate object[]/ulong[]/int[]/bool[] arrays. The ValueKind
-/// tag is derived from _heapRef in MakeValue (non-null ⇒ String), since
-/// no array type reliably round-trips a primitive kind tag in freestanding
-/// NativeAOT. ulong[]/int[] reads return 0 for non-zero values; those
-/// fields are only correct when zero (true for String/Object/Null kinds).
+/// Value components are stored in separate object[]/ulong[]/int[]/bool[]
+/// arrays. The ValueKind tag is preserved via bool[] kind-bit arrays for
+/// immediate types (heapRef == null) and derived from heap object type for
+/// heap-allocated values. ulong[]/int[] reads return 0 for non-zero values
+/// in freestanding NativeAOT, so kind bits use bool[] which round-trips
+/// reliably.
 /// </summary>
 public sealed class ValueMap
 {
@@ -19,6 +19,11 @@ public sealed class ValueMap
     private object[] _heapRefs;
     private int[] _aux1s;
     private int[] _aux2s;
+    // Kind tag bits (bit0=isBoolean, bit1=isNumber) for immediate types where
+    // heapRef is null. ulong[]/int[] reads return 0 in freestanding NativeAOT,
+    // so kind bits are stored in bool[] arrays which round-trip reliably.
+    private bool[] _kindBit0;
+    private bool[] _kindBit1;
     private bool[] _occupied;
     private bool[] _deleted;
     private int _count;
@@ -35,6 +40,9 @@ public sealed class ValueMap
         _heapRefs = new object[capacity];
         _aux1s = new int[capacity];
         _aux2s = new int[capacity];
+        // Kind bits: only meaningful for immediate types (heapRef == null).
+        _kindBit0 = new bool[capacity];
+        _kindBit1 = new bool[capacity];
         _occupied = new bool[capacity];
         _deleted = new bool[capacity];
         _count = 0;
@@ -57,7 +65,7 @@ public sealed class ValueMap
         set
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2);
+            Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2, value._kind);
         }
     }
 
@@ -103,6 +111,8 @@ public sealed class ValueMap
             System.Array.Clear(_heapRefs, 0, _heapRefs.Length);
             System.Array.Clear(_aux1s, 0, _aux1s.Length);
             System.Array.Clear(_aux2s, 0, _aux2s.Length);
+            System.Array.Clear(_kindBit0, 0, _kindBit0.Length);
+            System.Array.Clear(_kindBit1, 0, _kindBit1.Length);
             System.Array.Clear(_occupied, 0, _occupied.Length);
             System.Array.Clear(_deleted, 0, _deleted.Length);
             _count = 0;
@@ -114,12 +124,12 @@ public sealed class ValueMap
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
         if (TryGetValue(key, out _)) throw new ArgumentException("Key already exists");
-        Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2);
+        Insert(key, value._payload, value._heapRef, value._auxInt1, value._auxInt2, value._kind);
     }
 
-    public void InsertDirect(string key, ulong payload, object heapRef, int aux1, int aux2)
+    public void InsertDirect(string key, ulong payload, object heapRef, int aux1, int aux2, ValueKind kind)
     {
-        Insert(key, payload, heapRef, aux1, aux2);
+        Insert(key, payload, heapRef, aux1, aux2, kind);
     }
 
     public struct Enumerator
@@ -172,7 +182,7 @@ public sealed class ValueMap
         return -1;
     }
 
-    private void Insert(string key, ulong payload, object heapRef, int aux1, int aux2)
+    private void Insert(string key, ulong payload, object heapRef, int aux1, int aux2, ValueKind kind)
     {
         if ((_count + _deletedCount + 1) > _keys.Length * MaxLoadFactor)
         {
@@ -195,6 +205,11 @@ public sealed class ValueMap
                 _heapRefs[target] = heapRef;
                 _aux1s[target] = aux1;
                 _aux2s[target] = aux2;
+                // Store kind tag bits for immediate types (heapRef == null).
+                // bit0 = isBoolean, bit1 = isNumber. Heap-derived kinds are
+                // resolved from heapRef type on read, so bits stay false.
+                _kindBit0[target] = heapRef == null && kind == ValueKind.Boolean;
+                _kindBit1[target] = heapRef == null && kind == ValueKind.Number;
                 _occupied[target] = true;
                 _deleted[target] = false;
                 if (firstDeleted >= 0) _deletedCount--;
@@ -208,6 +223,9 @@ public sealed class ValueMap
                 _heapRefs[probe] = heapRef;
                 _aux1s[probe] = aux1;
                 _aux2s[probe] = aux2;
+                // Update kind tag bits on overwrite.
+                _kindBit0[probe] = heapRef == null && kind == ValueKind.Boolean;
+                _kindBit1[probe] = heapRef == null && kind == ValueKind.Number;
                 return;
             }
 
@@ -225,9 +243,33 @@ public sealed class ValueMap
         int a1 = _aux1s[index];
         int a2 = _aux2s[index];
 
-        // Derive ValueKind from heap reference: object[] reads work reliably.
-        // Non-null heap ref implies a heap-allocated value (String for now).
-        ValueKind k = h != null ? ValueKind.String : ValueKind.Null;
+        // Derive ValueKind: heap-based types from object type, immediate types
+        // from stored kind tag bits (bool[] round-trips reliably in freestanding).
+        ValueKind k;
+        if (h != null)
+        {
+            if (h is HeapString) k = ValueKind.String;
+            else if (h is HeapArray) k = ValueKind.Array;
+            else if (h is HeapObjectInstance) k = ValueKind.Object;
+            else if (h is HeapClass) k = ValueKind.Object;
+            else if (h is HeapClosure) k = ValueKind.Closure;
+            else if (h is HeapKeyEvent) k = ValueKind.KeyEvent;
+            else if (h is HeapEnumSet) k = ValueKind.EnumSet;
+            else if (h is HeapNativeFunction) k = ValueKind.NativeFunction;
+            else k = ValueKind.String;
+        }
+        else if (_kindBit0[index])
+        {
+            k = ValueKind.Boolean;
+        }
+        else if (_kindBit1[index])
+        {
+            k = ValueKind.Number;
+        }
+        else
+        {
+            k = ValueKind.Null;
+        }
 
         return Value.Make(k, p, h, a1, a2);
     }
@@ -240,6 +282,8 @@ public sealed class ValueMap
         var oldHeapRefs = _heapRefs;
         var oldAux1s = _aux1s;
         var oldAux2s = _aux2s;
+        var oldKindBit0 = _kindBit0;
+        var oldKindBit1 = _kindBit1;
         var oldOccupied = _occupied;
         var oldDeleted = _deleted;
 
@@ -248,6 +292,8 @@ public sealed class ValueMap
         _heapRefs = new object[newCapacity];
         _aux1s = new int[newCapacity];
         _aux2s = new int[newCapacity];
+        _kindBit0 = new bool[newCapacity];
+        _kindBit1 = new bool[newCapacity];
         _occupied = new bool[newCapacity];
         _deleted = new bool[newCapacity];
         _count = 0;
@@ -257,8 +303,34 @@ public sealed class ValueMap
         {
             if (oldOccupied[i] && !oldDeleted[i] && oldKeys[i] != null)
             {
-                // Re-derive kind from old heap ref during rehash.
-                Insert(oldKeys[i], oldPayloads[i], oldHeapRefs[i], oldAux1s[i], oldAux2s[i]);
+                // Re-derive kind from old heap ref / kind bits during rehash.
+                object h = oldHeapRefs[i];
+                ValueKind k;
+                if (h != null)
+                {
+                    if (h is HeapString) k = ValueKind.String;
+                    else if (h is HeapArray) k = ValueKind.Array;
+                    else if (h is HeapObjectInstance) k = ValueKind.Object;
+                    else if (h is HeapClass) k = ValueKind.Object;
+                    else if (h is HeapClosure) k = ValueKind.Closure;
+                    else if (h is HeapKeyEvent) k = ValueKind.KeyEvent;
+                    else if (h is HeapEnumSet) k = ValueKind.EnumSet;
+                    else if (h is HeapNativeFunction) k = ValueKind.NativeFunction;
+                    else k = ValueKind.String;
+                }
+                else if (oldKindBit0[i])
+                {
+                    k = ValueKind.Boolean;
+                }
+                else if (oldKindBit1[i])
+                {
+                    k = ValueKind.Number;
+                }
+                else
+                {
+                    k = ValueKind.Null;
+                }
+                Insert(oldKeys[i], oldPayloads[i], oldHeapRefs[i], oldAux1s[i], oldAux2s[i], k);
             }
         }
     }

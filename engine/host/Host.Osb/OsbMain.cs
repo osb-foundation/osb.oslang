@@ -234,21 +234,100 @@ internal static unsafe class OsbMain
         // Get command-line arguments
         var argsBuffer = stackalloc byte[260];
         int argsLen = Syscall.GetArgs(argsBuffer, 260);
+        string scriptPath;
+        string argsStr = string.Empty;
         if (argsLen <= 0)
         {
-            PrintUsage();
-            Syscall.Exit(1);
-        }
+            // No arguments: locate a unique main.osl in the current working
+            // directory (case-insensitive). Preserve existing behavior when
+            // none exists; report ambiguity when multiple candidates exist.
+            var cwd = stackalloc byte[256];
+            int cl = Syscall.GetCwd(cwd, 256);
+            if (cl < 0) cl = 0;
 
-        // Parse arguments: first token is the script source path; anything after
-        // the first space is passed to the script as application arguments.
-        string argsStr = BytesToString(argsBuffer, argsLen);
-        string scriptPath = ParseScriptPath(argsStr);
-        
-        if (scriptPath == null || scriptPath.Length == 0)
+            // Resolve CWD to get the directory inode.
+            uint dirIno;
+            ushort dm, du;
+            ulong ds;
+            if (!Syscall.ResolvePath(cwd, cl, out dirIno, out dm, out du, out ds))
+            {
+                PrintUsage();
+                Syscall.Exit(1);
+            }
+
+            // Scan directory for entries matching "main.osl" (case-insensitive,
+            // 8 bytes). Ext4.FindInDir compares case-insensitively but returns
+            // only the first match; we scan to detect ambiguity.
+            var mainName = stackalloc byte[8];
+            mainName[0] = (byte)'m'; mainName[1] = (byte)'a'; mainName[2] = (byte)'i';
+            mainName[3] = (byte)'n'; mainName[4] = (byte)'.'; mainName[5] = (byte)'o';
+            mainName[6] = (byte)'s'; mainName[7] = (byte)'l';
+
+            int matchCount = 0;
+            var matchName = stackalloc byte[240];
+            int matchNameLen = 0;
+
+            for (int idx = 0; ; idx++)
+            {
+                var entry = stackalloc byte[240];
+                if (!Syscall.DirNext(dirIno, idx, entry, 240)) break;
+                uint entryIno = *(uint*)entry;
+                if (entryIno == 0) continue;
+                byte entryNameLen = entry[5];
+                if (entryNameLen != 8) continue;
+                bool same = true;
+                for (int k = 0; k < 8; k++)
+                {
+                    byte ca = entry[6 + k];
+                    byte cb = mainName[k];
+                    if (ca >= 0x41 && ca <= 0x5A) ca += 0x20;
+                    if (cb >= 0x41 && cb <= 0x5A) cb += 0x20;
+                    if (ca != cb) { same = false; break; }
+                }
+                if (!same) continue;
+                matchCount++;
+                if (matchCount == 1)
+                {
+                    matchNameLen = entryNameLen;
+                    for (int k = 0; k < entryNameLen; k++) matchName[k] = entry[6 + k];
+                }
+                if (matchCount > 1) break;
+            }
+
+            if (matchCount == 0)
+            {
+                PrintUsage();
+                Syscall.Exit(1);
+            }
+
+            if (matchCount > 1)
+            {
+                Syscall.PrintString("Ambiguous: multiple main.osl candidates in CWD\r\n");
+                Syscall.Exit(1);
+            }
+
+            // Build path with the actual matched filename (preserves case).
+            var mainPath = stackalloc byte[260];
+            int n = 0;
+            for (int k = 0; k < cl && n < 250; k++) mainPath[n++] = cwd[k];
+            if (n > 0 && mainPath[n - 1] != (byte)'\\' && mainPath[n - 1] != (byte)':')
+                mainPath[n++] = (byte)'\\';
+            for (int k = 0; k < matchNameLen && n < 250; k++) mainPath[n++] = matchName[k];
+
+            scriptPath = BytesToString(mainPath, n);
+        }
+        else
         {
-            PrintUsage();
-            Syscall.Exit(1);
+            // Parse arguments: first token is the script source path; anything after
+            // the first space is passed to the script as application arguments.
+            argsStr = BytesToString(argsBuffer, argsLen);
+            scriptPath = ParseScriptPath(argsStr);
+
+            if (scriptPath == null || scriptPath.Length == 0)
+            {
+                PrintUsage();
+                Syscall.Exit(1);
+            }
         }
 
         // Read source file

@@ -52,9 +52,9 @@ public readonly partial struct Value
         _auxInt2 = aux2;
     }
 
-    public ValueKind Kind => _heapRef != null ? ValueKind.String : ValueKind.Null;
-    public bool IsNull => _heapRef == null;
-    public bool IsImmediate => false;
+    public ValueKind Kind => _kind;
+    public bool IsNull => _kind == ValueKind.Null;
+    public bool IsImmediate => _kind == ValueKind.Boolean || _kind == ValueKind.Number;
 
     // Factory methods
     public static Value NullValue => new(ValueKind.Null);
@@ -71,17 +71,17 @@ public readonly partial struct Value
     public static Value NativeFunction(NativeFunction fn) => new(ValueKind.NativeFunction, heapRef: new HeapNativeFunction(fn));
 
     // Accessors
-    public bool AsBoolean => false;
-    public double AsNumber => double.NaN;
-    public HeapString AsString => _heapRef != null ? (HeapString)_heapRef : null!;
-    public HeapArray AsArray => null!;
-    public HeapObject AsObject => null!;
-    public (int TypeIndex, int MemberIndex) AsEnum => (-1, -1);
-    public HeapEnumSet AsEnumSet => null!;
-    public HeapClosure AsClosure => null!;
-    public HeapKeyEvent AsKeyEvent => null!;
-    public NativeFunction AsNativeFunction => null!;
-    public HeapNativeFunction AsNativeFunctionObj => null!;
+    public bool AsBoolean => _kind == ValueKind.Boolean ? _payload != 0 : false;
+    public double AsNumber => _kind == ValueKind.Number ? BitConverter.UInt64BitsToDouble(_payload) : double.NaN;
+    public HeapString AsString => _kind == ValueKind.String ? (HeapString)_heapRef : null!;
+    public HeapArray AsArray => _kind == ValueKind.Array ? (HeapArray)_heapRef : null!;
+    public HeapObject AsObject => _kind == ValueKind.Object ? (HeapObject)_heapRef : null!;
+    public (int TypeIndex, int MemberIndex) AsEnum => _kind == ValueKind.Enum ? (_auxInt1, _auxInt2) : (-1, -1);
+    public HeapEnumSet AsEnumSet => _kind == ValueKind.EnumSet ? (HeapEnumSet)_heapRef : null!;
+    public HeapClosure AsClosure => _kind == ValueKind.Closure ? (HeapClosure)_heapRef : null!;
+    public HeapKeyEvent AsKeyEvent => _kind == ValueKind.KeyEvent ? (HeapKeyEvent)_heapRef : null!;
+    public NativeFunction AsNativeFunction => _kind == ValueKind.NativeFunction ? ((HeapNativeFunction)_heapRef).Function : null!;
+    public HeapNativeFunction AsNativeFunctionObj => _kind == ValueKind.NativeFunction ? (HeapNativeFunction)_heapRef : null!;
 
     #region Explicit (non-ambiguous) accessors
 
@@ -99,7 +99,7 @@ public readonly partial struct Value
 
     public bool TryAsString(out HeapString value)
     {
-        if (_heapRef != null) { value = (HeapString)_heapRef; return true; }
+        if (_kind == ValueKind.String) { value = (HeapString)_heapRef; return true; }
         value = null!; return false;
     }
 
@@ -147,7 +147,14 @@ public readonly partial struct Value
 
     #endregion
 
-    public override string ToString() => _heapRef != null ? AsString.ToString() : "NULL";
+    public override string ToString() => _kind switch
+    {
+        ValueKind.Null => "NULL",
+        ValueKind.Boolean => AsBoolean ? "TRUE" : "FALSE",
+        ValueKind.Number => AsNumber.ToString(),
+        ValueKind.String => _heapRef != null ? AsString.ToString() : "NULL",
+        _ => "NULL",
+    };
 }
 
 #endregion
