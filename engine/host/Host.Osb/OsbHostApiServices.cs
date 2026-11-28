@@ -6,6 +6,16 @@ using OsbKT;
 /// </summary>
 internal sealed unsafe partial class OsbHostApi
 {
+#if DIAGNOSTICS
+        private static void Diag(string text)
+        {
+            if (text == null) return;
+            var pbuf = stackalloc byte[256];
+            int plen = Narrow(text, pbuf, 256);
+            if (plen > 0) Syscall.Write(pbuf, plen);
+        }
+#endif
+
     public string? GetCwd()
         {
             var buf = stackalloc byte[160];
@@ -18,11 +28,41 @@ internal sealed unsafe partial class OsbHostApi
 
         // ---- Console (OSL.CONSOLE) ----
 
-        public void ConsoleEnter() { /* alternate-screen enter: no-op on VGA */ }
-        public void ConsoleAlternate(bool on) { /* no-op on VGA */ }
-        public void ConsoleHideCursor() => Syscall.ConsCursorHide();
-        public void ConsoleShowCursor() => Syscall.ConsCursorShow();
-        public void ConsoleExit() { /* alternate-screen exit: no-op on VGA */ }
+        public void ConsoleEnter()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.ENTER\r\n");
+#endif
+            /* alternate-screen enter: no-op on VGA */
+        }
+        public void ConsoleAlternate(bool on)
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.ALTERNATE(" + (on ? "TRUE" : "FALSE") + ")\r\n");
+#endif
+            /* no-op on VGA */
+        }
+        public void ConsoleHideCursor()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.HIDECURSOR\r\n");
+#endif
+            Syscall.ConsCursorHide();
+        }
+        public void ConsoleShowCursor()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.SHOWCURSOR\r\n");
+#endif
+            Syscall.ConsCursorShow();
+        }
+        public void ConsoleExit()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.EXIT\r\n");
+#endif
+            /* alternate-screen exit: no-op on VGA */
+        }
 
         public void ConsoleGetKey(out int keyCode, out char character, out bool ctrl)
         {
@@ -30,9 +70,19 @@ internal sealed unsafe partial class OsbHostApi
             character = '\0';
             ctrl = false;
 
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.GETKEY\r\n");
+#endif
+
             // Blocking read of the next cooked byte
             int ch = Syscall.GetChar();
-            if (ch < 0) return;
+            if (ch < 0)
+            {
+#if DIAGNOSTICS
+                Diag("[KISS] GETKEY: no key available\r\n");
+#endif
+                return;
+            }
 
             ctrl = Syscall.ConsMods();
 
@@ -71,6 +121,9 @@ internal sealed unsafe partial class OsbHostApi
             // Regular key
             keyCode = ch;
             if (ch >= 32 && ch <= 126) character = (char)ch;
+#if DIAGNOSTICS
+            Diag("[KISS] GETKEY: code=" + keyCode + " char=" + character + "\r\n");
+#endif
         }
 
         public void ConsoleSize(out int width, out int height)
@@ -80,10 +133,25 @@ internal sealed unsafe partial class OsbHostApi
             if (!Syscall.ConsInfo(out ushort cols, out ushort rows)) return;
             width = cols;
             height = rows;
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.SIZE: " + width + "x" + height + "\r\n");
+#endif
         }
 
-        public void ConsoleBeginFrame() => Syscall.ConsBeginFrame();
-        public void ConsoleEndFrame() => Syscall.ConsEndFrame();
+        public void ConsoleBeginFrame()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.BEGINFRAME\r\n");
+#endif
+            Syscall.ConsBeginFrame();
+        }
+        public void ConsoleEndFrame()
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.ENDFRAME\r\n");
+#endif
+            Syscall.ConsEndFrame();
+        }
 
         public void ConsoleWrite(int row, int col, string text)
         {
@@ -93,9 +161,18 @@ internal sealed unsafe partial class OsbHostApi
             int n = len > 511 ? 511 : len;
             for (int i = 0; i < n; i++) buf[i] = (byte)text[i];
             Syscall.ConsWriteAt(row, col, buf, n);
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.WRITE(" + row + "," + col + ")\r\n");
+#endif
         }
 
-        public void ConsoleSetCursor(int row, int col) => Syscall.ConsCursorSet(row, col);
+        public void ConsoleSetCursor(int row, int col)
+        {
+#if DIAGNOSTICS
+            Diag("[KISS] CONSOLE.SETCURSOR(" + row + "," + col + ")\r\n");
+#endif
+            Syscall.ConsCursorSet(row, col);
+        }
         public void ConsoleShow(string text) => Write(text);
 
         public string ConsoleInput()

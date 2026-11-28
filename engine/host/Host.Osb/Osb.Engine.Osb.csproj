@@ -18,6 +18,7 @@
     <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
     <UseAppHost>false</UseAppHost>
     <DefineConstants>$(DefineConstants);TARGET_64BIT;FREESTANDING</DefineConstants>
+    <DefineConstants Condition="'$(EnableDiagnostics)' == 'true'">$(DefineConstants);DIAGNOSTICS</DefineConstants>
     <AssemblyName>OSLANG</AssemblyName>
     <RootNamespace></RootNamespace>
   </PropertyGroup>

@@ -8,7 +8,18 @@ public partial class Parser
     {
         var start = Current.Location;
         Advance(); // USING
-        var name = ExpectIdentifier("Expected module name after USING");
+
+        // Parse dotted module name: OSL.CONSOLE, OSL.FILE, etc.
+        // Components may be identifiers or namespace keywords (e.g. OSL, MATH, FILE).
+        var first = ExpectMemberName("Expected module name after USING");
+        var name = first;
+        if (Check(TokenType.Dot))
+        {
+            Advance(); // .
+            var second = ExpectMemberName("Expected module name after '.'");
+            name = first + "." + second;
+        }
+
         Expect(TokenType.Newline, "Expected end of line after USING");
         return new UsingDecl(name, start);
     }

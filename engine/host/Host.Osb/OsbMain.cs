@@ -214,7 +214,7 @@ internal static unsafe class OsbMain
 {
     // Ring 3 heap = the kernel-designated process heap [UserTlsEnd, UserTlsHeapEnd)
     // (Scheduler.InitTaskTls); the former M2 region overlapped the TLS area (M3).
-    private const ulong HeapBase = 0x2180000;
+    private const ulong HeapBase = 0x2108000; // UserTlsEnd
     private const ulong HeapLimit = 0x21FFFF0;
     private const int HeapSize = (int)(HeapLimit - HeapBase);
 
@@ -331,6 +331,11 @@ internal static unsafe class OsbMain
         }
 
         // Read source file
+#if DIAGNOSTICS
+        Syscall.PrintString("[KISS] OsbMain: loading source '");
+        Syscall.PrintString(scriptPath);
+        Syscall.PrintString("'\r\n");
+#endif
         string source = ReadSourceFile(scriptPath);
         if (source == null)
         {
@@ -339,6 +344,11 @@ internal static unsafe class OsbMain
             Syscall.PrintString("'\r\n");
             Syscall.Exit(1);
         }
+#if DIAGNOSTICS
+        Syscall.PrintString("[KISS] OsbMain: source loaded, length=");
+        Syscall.PrintString(source.Length.ToString());
+        Syscall.PrintString("\r\n");
+#endif
 
         // Set up Engine.Core
         var provider = new Osb.Engine.Core.Providers.OsbMemoryProvider((IntPtr)HeapBase, HeapSize);
@@ -358,6 +368,9 @@ var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
             var program = parser.Parse();
 
             var interpreter = new Osb.Engine.Core.Eval.Interpreter(heap, host, math, time, random, utf8);
+#if DIAGNOSTICS
+        Syscall.PrintString("[KISS] OsbMain: interpreter created\r\n");
+#endif
 
         // Expose ARGS (everything after the script path on the command line) as a
         // global string array so OSLANG scripts can access command-line arguments.
@@ -379,8 +392,18 @@ var lexer = new Osb.Engine.Core.Lang.Lexer(source, utf8);
             argsArr.Items[ai++] = Osb.Engine.Core.Values.Value.String(heap.AllocString(new string(chars, len)));
         }
         interpreter.SetGlobal("ARGS", Osb.Engine.Core.Values.Value.Array(argsArr));
+#if DIAGNOSTICS
+        Syscall.PrintString("[KISS] OsbMain: ARGS set, count=");
+        Syscall.PrintString(argCount.ToString());
+        Syscall.PrintString("\r\n");
+#endif
 
         interpreter.Execute(program);
+#if DIAGNOSTICS
+        Syscall.PrintString("[KISS] OsbMain: interpreter.Execute returned, flow=");
+        Syscall.PrintString(interpreter.CurrentFlow.ToString());
+        Syscall.PrintString("\r\n");
+#endif
             if (interpreter.CurrentFlow == Osb.Engine.Core.Eval.ControlFlow.Exception)
             {
                 Syscall.PrintString("Runtime error: ");
